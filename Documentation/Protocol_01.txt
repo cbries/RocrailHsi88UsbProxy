@@ -1,0 +1,859 @@
+get(1, info)
+get(1, status)
+request(1, view)
+request(26, view)
+request(27, view)
+request(5, view)
+request(7, view)
+request(100, view)
+request(200, view)
+request(10, view)
+request(11, view, viewswitch)
+request(20, view)
+get(26, state)
+get(100, state)
+get(200, state)
+get(20, state)
+queryObjects(10, addr, name, protocol)
+queryObjects(11, addr, protocol)
+queryObjects(26, ports)
+queryObjects(20, ports)
+<REPLY get(1, info)>
+1 ECoS2
+1 ProtocolVersion[0.5]
+1 ApplicationVersion[4.2.13]
+1 HardwareVersion[2.1]
+<END 0 (OK)>
+<REPLY get(1, status)>
+1 status[STOP]
+<END 0 (OK)>
+<REPLY request(1, view)>
+<END 0 (OK)>
+<REPLY request(26, view)>
+<END 0 (OK)>
+<REPLY request(27, view)>
+<END 0 (OK)>
+<REPLY request(5, view)>
+<END 0 (OK)>
+<REPLY request(7, view)>
+<END 0 (OK)>
+<REPLY request(100, view)>
+<END 0 (OK)>
+<REPLY request(200, view)>
+<END 15 (unknown object at 11)>
+<REPLY request(10, view)>
+<END 0 (OK)>
+<REPLY request(11, view, viewswitch)>
+<END 0 (OK)>
+<REPLY request(20, view)>
+<END 15 (unknown object at 10)>
+<REPLY get(26, state)>
+<END 11 (unknown option at 9)>
+<REPLY get(100, state)>
+100 state[0x0]
+<END 0 (OK)>
+<REPLY get(200, state)>
+<END 15 (unknown object at 7)>
+<REPLY get(20, state)>
+<END 15 (unknown object at 6)>
+<REPLY queryObjects(10, addr, name, protocol)>
+1000 name["Schweineschnauze"] addr[54] protocol[MM14]
+1001 name["BR_232_371-5"] addr[9] protocol[DCC28]
+1002 name["DB_215_&_DB_216"] addr[4] protocol[MM14]
+1003 name["BR_10_001"] addr[10] protocol[MM14]
+1004 name["DHG_500_36501"] addr[24] protocol[MM14]
+1005 name["Chiquita"] addr[72] protocol[MM14]
+1006 name["Emma"] addr[0] protocol[MFX]
+1007 name["V36239"] addr[55] protocol[DCC28]
+1008 name["BR_18_128"] addr[2] protocol[DCC14]
+1009 name["K..nig_Pr_S_10"] addr[74] protocol[MM14]
+1011 name["V16_101"] addr[1045] protocol[DCC28]
+1010 name["BR_212_215-8"] addr[21] protocol[DCC28]
+1012 name["BR_85_006"] addr[8] protocol[MM14]
+1013 name["BR_86_130"] addr[79] protocol[MM14]
+1015 name["BR_75_057"] addr[0] protocol[MFX]
+1014 name["BR_74_854"] addr[0] protocol[MFX]
+1016 name["BR_81_006"] addr[61] protocol[MM28]
+1017 name["BR_24_038"] addr[80] protocol[MM14]
+1018 name["BR_86_260_Delta"] addr[78] protocol[MM14]
+1019 name["BR_216_025_7"] addr[0] protocol[MFX]
+1020 name["W001_A04"] addr[100] protocol[DCC28]
+1021 name["W002_A04"] addr[101] protocol[DCC28]
+<END 0 (OK)>
+<REPLY queryObjects(11, addr, protocol)>
+20001 addr[1] protocol[DCC]
+20000 addr[2] protocol[DCC]
+20002 addr[3] protocol[DCC]
+20003 addr[4] protocol[DCC]
+20004 addr[5] protocol[DCC]
+20005 addr[9] protocol[DCC]
+20006 addr[10] protocol[DCC]
+20007 addr[11] protocol[DCC]
+20008 addr[12] protocol[DCC]
+20009 addr[7] protocol[DCC]
+20010 addr[13] protocol[DCC]
+20011 addr[14] protocol[DCC]
+20012 addr[15] protocol[DCC]
+20013 addr[16] protocol[DCC]
+30000
+30001
+30002
+30003
+30004
+30005
+30006
+30007
+30008
+30009
+30010
+30011
+30012
+<END 0 (OK)>
+<REPLY queryObjects(26, ports)>
+100 ports[16]
+101 ports[16]
+<END 0 (OK)>
+<REPLY queryObjects(20, ports)>
+<END 15 (unknown object at 15)>
+request(1000, view)
+get(1000, funcdesc)
+request(1001, view)
+get(1001, funcdesc)
+request(1002, view)
+get(1002, funcdesc)
+request(1003, view)
+get(1003, funcdesc)
+request(1004, view)
+get(1004, funcdesc)
+request(1005, view)
+get(1005, funcdesc)
+request(1006, view)
+get(1006, funcdesc)
+request(1007, view)
+get(1007, funcdesc)
+request(1008, view)
+get(1008, funcdesc)
+request(1009, view)
+get(1009, funcdesc)
+request(1011, view)
+get(1011, funcdesc)
+request(1010, view)
+get(1010, funcdesc)
+request(1012, view)
+get(1012, funcdesc)
+request(1013, view)
+get(1013, funcdesc)
+request(1015, view)
+get(1015, funcdesc)
+request(1014, view)
+get(1014, funcdesc)
+request(1016, view)
+get(1016, funcdesc)
+request(1017, view)
+get(1017, funcdesc)
+request(1018, view)
+get(1018, funcdesc)
+request(1019, view)
+get(1019, funcdesc)
+request(1020, view)
+get(1020, funcdesc)
+request(1021, view)
+get(1021, funcdesc)
+<REPLY request(1000, view)>
+<END 0 (OK)>
+<REPLY get(1000, funcdesc)>
+1000 funcdesc[0,0]
+1000 funcdesc[1,0]
+1000 funcdesc[2,0]
+1000 funcdesc[3,0]
+1000 funcdesc[4,0]
+1000 funcdesc[5,0]
+1000 funcdesc[6,0]
+1000 funcdesc[7,0]
+1000 funcdesc[8,0]
+<END 0 (OK)>
+<REPLY request(1001, view)>
+<END 0 (OK)>
+<REPLY get(1001, funcdesc)>
+1001 funcdesc[0,3]
+1001 funcdesc[1,6]
+1001 funcdesc[2,6]
+1001 funcdesc[3,10]
+1001 funcdesc[4,11]
+1001 funcdesc[5,0]
+1001 funcdesc[6,0]
+1001 funcdesc[7,0]
+1001 funcdesc[8,0]
+1001 funcdesc[9,0]
+1001 funcdesc[10,0]
+1001 funcdesc[11,0]
+1001 funcdesc[12,0]
+1001 funcdesc[13,0]
+1001 funcdesc[14,0]
+1001 funcdesc[15,0]
+1001 funcdesc[16,0]
+1001 funcdesc[17,0]
+1001 funcdesc[18,0]
+1001 funcdesc[19,0]
+1001 funcdesc[20,0]
+1001 funcdesc[21,0]
+1001 funcdesc[22,0]
+1001 funcdesc[23,0]
+1001 funcdesc[24,0]
+1001 funcdesc[25,0]
+1001 funcdesc[26,0]
+1001 funcdesc[27,0]
+1001 funcdesc[28,0]
+1001 funcdesc[29,0]
+1001 funcdesc[30,0]
+<END 0 (OK)>
+<REPLY request(1002, view)>
+<END 0 (OK)>
+<REPLY get(1002, funcdesc)>
+1002 funcdesc[0,3]
+1002 funcdesc[1,0]
+1002 funcdesc[2,0]
+1002 funcdesc[3,0]
+1002 funcdesc[4,6]
+1002 funcdesc[5,0]
+1002 funcdesc[6,0]
+1002 funcdesc[7,0]
+1002 funcdesc[8,0]
+<END 0 (OK)>
+<REPLY request(1003, view)>
+<END 0 (OK)>
+<REPLY get(1003, funcdesc)>
+1003 funcdesc[0,3]
+1003 funcdesc[1,33]
+1003 funcdesc[2,773]
+1003 funcdesc[3,38,moment]
+1003 funcdesc[4,7]
+1003 funcdesc[5,0]
+1003 funcdesc[6,0]
+1003 funcdesc[7,0]
+1003 funcdesc[8,0]
+<END 0 (OK)>
+<REPLY request(1004, view)>
+<END 0 (OK)>
+<REPLY get(1004, funcdesc)>
+1004 funcdesc[0,3]
+1004 funcdesc[1,0]
+1004 funcdesc[2,0]
+1004 funcdesc[3,0]
+1004 funcdesc[4,11]
+1004 funcdesc[5,0]
+1004 funcdesc[6,0]
+1004 funcdesc[7,0]
+1004 funcdesc[8,0]
+<END 0 (OK)>
+<REPLY request(1005, view)>
+<END 0 (OK)>
+<REPLY get(1005, funcdesc)>
+1005 funcdesc[0,3]
+1005 funcdesc[1,0]
+1005 funcdesc[2,0]
+1005 funcdesc[3,0]
+1005 funcdesc[4,11]
+1005 funcdesc[5,0]
+1005 funcdesc[6,0]
+1005 funcdesc[7,0]
+1005 funcdesc[8,0]
+<END 0 (OK)>
+<REPLY request(1006, view)>
+<END 0 (OK)>
+<REPLY get(1006, funcdesc)>
+1006 funcdesc[0,3]
+1006 funcdesc[1,9,moment]
+1006 funcdesc[2,8]
+1006 funcdesc[3,0]
+1006 funcdesc[4,11]
+1006 funcdesc[5,0]
+1006 funcdesc[6,0]
+1006 funcdesc[7,0]
+1006 funcdesc[8,0]
+1006 funcdesc[9,0]
+1006 funcdesc[10,0]
+1006 funcdesc[11,0]
+1006 funcdesc[12,0]
+1006 funcdesc[13,0]
+1006 funcdesc[14,0]
+1006 funcdesc[15,0]
+<END 0 (OK)>
+<REPLY request(1007, view)>
+<END 0 (OK)>
+<REPLY get(1007, funcdesc)>
+1007 funcdesc[0,3]
+1007 funcdesc[1,0]
+1007 funcdesc[2,0]
+1007 funcdesc[3,0]
+1007 funcdesc[4,0]
+1007 funcdesc[5,0]
+1007 funcdesc[6,0]
+1007 funcdesc[7,0]
+1007 funcdesc[8,0]
+1007 funcdesc[9,0]
+1007 funcdesc[10,0]
+1007 funcdesc[11,0]
+1007 funcdesc[12,0]
+1007 funcdesc[13,0]
+1007 funcdesc[14,0]
+1007 funcdesc[15,0]
+1007 funcdesc[16,0]
+1007 funcdesc[17,0]
+1007 funcdesc[18,0]
+1007 funcdesc[19,0]
+1007 funcdesc[20,0]
+1007 funcdesc[21,0]
+1007 funcdesc[22,0]
+1007 funcdesc[23,0]
+1007 funcdesc[24,0]
+1007 funcdesc[25,0]
+1007 funcdesc[26,0]
+1007 funcdesc[27,0]
+1007 funcdesc[28,0]
+1007 funcdesc[29,0]
+1007 funcdesc[30,0]
+<END 0 (OK)>
+<REPLY request(1008, view)>
+<END 0 (OK)>
+<REPLY get(1008, funcdesc)>
+1008 funcdesc[0,3]
+1008 funcdesc[1,0]
+1008 funcdesc[2,0]
+1008 funcdesc[3,10]
+1008 funcdesc[4,11]
+1008 funcdesc[5,0]
+1008 funcdesc[6,0]
+1008 funcdesc[7,0]
+1008 funcdesc[8,0]
+1008 funcdesc[9,0]
+1008 funcdesc[10,0]
+1008 funcdesc[11,0]
+1008 funcdesc[12,0]
+1008 funcdesc[13,0]
+1008 funcdesc[14,0]
+1008 funcdesc[15,0]
+1008 funcdesc[16,0]
+1008 funcdesc[17,0]
+1008 funcdesc[18,0]
+1008 funcdesc[19,0]
+1008 funcdesc[20,0]
+1008 funcdesc[21,0]
+1008 funcdesc[22,0]
+1008 funcdesc[23,0]
+1008 funcdesc[24,0]
+1008 funcdesc[25,0]
+1008 funcdesc[26,0]
+1008 funcdesc[27,0]
+1008 funcdesc[28,0]
+1008 funcdesc[29,0]
+1008 funcdesc[30,0]
+<END 0 (OK)>
+<REPLY request(1009, view)>
+<END 0 (OK)>
+<REPLY get(1009, funcdesc)>
+1009 funcdesc[0,3]
+1009 funcdesc[1,0]
+1009 funcdesc[2,0]
+1009 funcdesc[3,0]
+1009 funcdesc[4,0]
+1009 funcdesc[5,0]
+1009 funcdesc[6,0]
+1009 funcdesc[7,0]
+1009 funcdesc[8,0]
+<END 0 (OK)>
+<REPLY request(1011, view)>
+<END 0 (OK)>
+<REPLY get(1011, funcdesc)>
+1011 funcdesc[0,3]
+1011 funcdesc[1,0]
+1011 funcdesc[2,0]
+1011 funcdesc[3,10]
+1011 funcdesc[4,11]
+1011 funcdesc[5,0]
+1011 funcdesc[6,0]
+1011 funcdesc[7,0]
+1011 funcdesc[8,0]
+1011 funcdesc[9,0]
+1011 funcdesc[10,0]
+1011 funcdesc[11,0]
+1011 funcdesc[12,0]
+1011 funcdesc[13,0]
+1011 funcdesc[14,0]
+1011 funcdesc[15,0]
+1011 funcdesc[16,0]
+1011 funcdesc[17,0]
+1011 funcdesc[18,0]
+1011 funcdesc[19,0]
+1011 funcdesc[20,0]
+1011 funcdesc[21,0]
+1011 funcdesc[22,0]
+1011 funcdesc[23,0]
+1011 funcdesc[24,0]
+1011 funcdesc[25,0]
+1011 funcdesc[26,0]
+1011 funcdesc[27,0]
+1011 funcdesc[28,0]
+1011 funcdesc[29,0]
+1011 funcdesc[30,0]
+<END 0 (OK)>
+<REPLY request(1010, view)>
+<END 0 (OK)>
+<REPLY get(1010, funcdesc)>
+1010 funcdesc[0,3]
+1010 funcdesc[1,0]
+1010 funcdesc[2,0]
+1010 funcdesc[3,10]
+1010 funcdesc[4,11]
+1010 funcdesc[5,0]
+1010 funcdesc[6,0]
+1010 funcdesc[7,0]
+1010 funcdesc[8,0]
+1010 funcdesc[9,0]
+1010 funcdesc[10,0]
+1010 funcdesc[11,0]
+1010 funcdesc[12,0]
+1010 funcdesc[13,0]
+1010 funcdesc[14,0]
+1010 funcdesc[15,0]
+1010 funcdesc[16,0]
+1010 funcdesc[17,0]
+1010 funcdesc[18,0]
+1010 funcdesc[19,0]
+1010 funcdesc[20,0]
+1010 funcdesc[21,0]
+1010 funcdesc[22,0]
+1010 funcdesc[23,0]
+1010 funcdesc[24,0]
+1010 funcdesc[25,0]
+1010 funcdesc[26,0]
+1010 funcdesc[27,0]
+1010 funcdesc[28,0]
+1010 funcdesc[29,0]
+1010 funcdesc[30,0]
+<END 0 (OK)>
+<REPLY request(1012, view)>
+<END 0 (OK)>
+<REPLY get(1012, funcdesc)>
+1012 funcdesc[0,3]
+1012 funcdesc[1,0]
+1012 funcdesc[2,0]
+1012 funcdesc[3,0]
+1012 funcdesc[4,0]
+1012 funcdesc[5,0]
+1012 funcdesc[6,0]
+1012 funcdesc[7,0]
+1012 funcdesc[8,0]
+<END 0 (OK)>
+<REPLY request(1013, view)>
+<END 0 (OK)>
+<REPLY get(1013, funcdesc)>
+1013 funcdesc[0,3]
+1013 funcdesc[1,32,moment]
+1013 funcdesc[2,0]
+1013 funcdesc[3,0]
+1013 funcdesc[4,0]
+1013 funcdesc[5,0]
+1013 funcdesc[6,0]
+1013 funcdesc[7,0]
+1013 funcdesc[8,0]
+<END 0 (OK)>
+<REPLY request(1015, view)>
+<END 0 (OK)>
+<REPLY get(1015, funcdesc)>
+1015 funcdesc[0,3]
+1015 funcdesc[1,10]
+1015 funcdesc[2,4]
+1015 funcdesc[3,0]
+1015 funcdesc[4,11]
+1015 funcdesc[5,0]
+1015 funcdesc[6,0]
+1015 funcdesc[7,0]
+1015 funcdesc[8,0]
+1015 funcdesc[9,0]
+1015 funcdesc[10,0]
+1015 funcdesc[11,0]
+1015 funcdesc[12,0]
+1015 funcdesc[13,0]
+1015 funcdesc[14,0]
+1015 funcdesc[15,0]
+<END 0 (OK)>
+<REPLY request(1014, view)>
+<END 0 (OK)>
+<REPLY get(1014, funcdesc)>
+1014 funcdesc[0,3]
+1014 funcdesc[1,0]
+1014 funcdesc[2,0]
+1014 funcdesc[3,0]
+1014 funcdesc[4,11]
+1014 funcdesc[5,0]
+1014 funcdesc[6,0]
+1014 funcdesc[7,0]
+1014 funcdesc[8,0]
+1014 funcdesc[9,0]
+1014 funcdesc[10,0]
+1014 funcdesc[11,0]
+1014 funcdesc[12,0]
+1014 funcdesc[13,0]
+1014 funcdesc[14,0]
+1014 funcdesc[15,0]
+1014 funcdesc[16,0]
+1014 funcdesc[17,0]
+1014 funcdesc[18,0]
+1014 funcdesc[19,0]
+1014 funcdesc[20,0]
+1014 funcdesc[21,0]
+1014 funcdesc[22,0]
+1014 funcdesc[23,0]
+1014 funcdesc[24,0]
+1014 funcdesc[25,0]
+1014 funcdesc[26,0]
+1014 funcdesc[27,0]
+1014 funcdesc[28,0]
+1014 funcdesc[29,0]
+1014 funcdesc[30,0]
+<END 0 (OK)>
+<REPLY request(1016, view)>
+<END 0 (OK)>
+<REPLY get(1016, funcdesc)>
+1016 funcdesc[0,3]
+1016 funcdesc[1,0]
+1016 funcdesc[2,0]
+1016 funcdesc[3,0]
+1016 funcdesc[4,0]
+1016 funcdesc[5,0]
+1016 funcdesc[6,0]
+1016 funcdesc[7,0]
+1016 funcdesc[8,0]
+<END 0 (OK)>
+<REPLY request(1017, view)>
+<END 0 (OK)>
+<REPLY get(1017, funcdesc)>
+1017 funcdesc[0,3]
+1017 funcdesc[1,0]
+1017 funcdesc[2,0]
+1017 funcdesc[3,0]
+1017 funcdesc[4,0]
+1017 funcdesc[5,0]
+1017 funcdesc[6,0]
+1017 funcdesc[7,0]
+1017 funcdesc[8,0]
+<END 0 (OK)>
+<REPLY request(1018, view)>
+<END 0 (OK)>
+<REPLY get(1018, funcdesc)>
+1018 funcdesc[0,3]
+1018 funcdesc[1,0]
+1018 funcdesc[2,0]
+1018 funcdesc[3,0]
+1018 funcdesc[4,0]
+1018 funcdesc[5,0]
+1018 funcdesc[6,0]
+1018 funcdesc[7,0]
+1018 funcdesc[8,0]
+<END 0 (OK)>
+<REPLY request(1019, view)>
+<END 0 (OK)>
+<REPLY get(1019, funcdesc)>
+1019 funcdesc[0,3]
+1019 funcdesc[1,6]
+1019 funcdesc[2,6]
+1019 funcdesc[3,10]
+1019 funcdesc[4,11]
+1019 funcdesc[5,0]
+1019 funcdesc[6,0]
+1019 funcdesc[7,0]
+1019 funcdesc[8,0]
+1019 funcdesc[9,0]
+1019 funcdesc[10,0]
+1019 funcdesc[11,0]
+1019 funcdesc[12,0]
+1019 funcdesc[13,0]
+1019 funcdesc[14,0]
+1019 funcdesc[15,0]
+1019 funcdesc[16,0]
+1019 funcdesc[17,0]
+1019 funcdesc[18,0]
+1019 funcdesc[19,0]
+1019 funcdesc[20,0]
+1019 funcdesc[21,0]
+1019 funcdesc[22,0]
+1019 funcdesc[23,0]
+1019 funcdesc[24,0]
+1019 funcdesc[25,0]
+1019 funcdesc[26,0]
+1019 funcdesc[27,0]
+1019 funcdesc[28,0]
+1019 funcdesc[29,0]
+1019 funcdesc[30,0]
+<END 0 (OK)>
+<REPLY request(1020, view)>
+<END 0 (OK)>
+<REPLY get(1020, funcdesc)>
+1020 funcdesc[0,1029]
+1020 funcdesc[1,1029]
+1020 funcdesc[2,3]
+1020 funcdesc[3,0]
+1020 funcdesc[4,0]
+1020 funcdesc[5,0]
+1020 funcdesc[6,0]
+1020 funcdesc[7,0]
+1020 funcdesc[8,0]
+1020 funcdesc[9,0]
+1020 funcdesc[10,0]
+1020 funcdesc[11,0]
+1020 funcdesc[12,0]
+1020 funcdesc[13,0]
+1020 funcdesc[14,0]
+1020 funcdesc[15,0]
+1020 funcdesc[16,0]
+1020 funcdesc[17,0]
+1020 funcdesc[18,0]
+1020 funcdesc[19,0]
+1020 funcdesc[20,0]
+1020 funcdesc[21,0]
+1020 funcdesc[22,0]
+1020 funcdesc[23,0]
+1020 funcdesc[24,0]
+1020 funcdesc[25,0]
+1020 funcdesc[26,0]
+1020 funcdesc[27,0]
+1020 funcdesc[28,0]
+1020 funcdesc[29,0]
+1020 funcdesc[30,0]
+<END 0 (OK)>
+<REPLY request(1021, view)>
+<END 0 (OK)>
+<REPLY get(1021, funcdesc)>
+1021 funcdesc[0,1029]
+1021 funcdesc[1,0]
+1021 funcdesc[2,3]
+1021 funcdesc[3,0]
+1021 funcdesc[4,0]
+1021 funcdesc[5,0]
+1021 funcdesc[6,0]
+1021 funcdesc[7,0]
+1021 funcdesc[8,0]
+1021 funcdesc[9,0]
+1021 funcdesc[10,0]
+1021 funcdesc[11,0]
+1021 funcdesc[12,0]
+1021 funcdesc[13,0]
+1021 funcdesc[14,0]
+1021 funcdesc[15,0]
+1021 funcdesc[16,0]
+1021 funcdesc[17,0]
+1021 funcdesc[18,0]
+1021 funcdesc[19,0]
+1021 funcdesc[20,0]
+1021 funcdesc[21,0]
+1021 funcdesc[22,0]
+1021 funcdesc[23,0]
+1021 funcdesc[24,0]
+1021 funcdesc[25,0]
+1021 funcdesc[26,0]
+1021 funcdesc[27,0]
+1021 funcdesc[28,0]
+1021 funcdesc[29,0]
+1021 funcdesc[30,0]
+<END 0 (OK)>
+request(20001, view)
+request(20000, view)
+request(20002, view)
+request(20003, view)
+request(20004, view)
+request(20005, view)
+request(20006, view)
+request(20007, view)
+request(20008, view)
+request(20009, view)
+request(20010, view)
+request(20011, view)
+request(20012, view)
+request(20013, view)
+<REPLY request(20001, view)>
+<END 0 (OK)>
+<REPLY request(20000, view)>
+<END 0 (OK)>
+<REPLY request(20002, view)>
+<END 0 (OK)>
+<REPLY request(20003, view)>
+<END 0 (OK)>
+<REPLY request(20004, view)>
+<END 0 (OK)>
+<REPLY request(20005, view)>
+<END 0 (OK)>
+<REPLY request(20006, view)>
+<END 0 (OK)>
+<REPLY request(20007, view)>
+<END 0 (OK)>
+<REPLY request(20008, view)>
+<END 0 (OK)>
+<REPLY request(20009, view)>
+<END 0 (OK)>
+<REPLY request(20010, view)>
+<END 0 (OK)>
+<REPLY request(20011, view)>
+<END 0 (OK)>
+<REPLY request(20012, view)>
+<END 0 (OK)>
+<REPLY request(20013, view)>
+<END 0 (OK)>
+request(100, view)
+<REPLY request(100, view)>
+<END 0 (OK)>
+get(100)
+request(101, view)
+get(101)
+<REPLY get(100)>
+100 objectclass[feedback-module]
+100 view[objectclass,view,listview,control,ports,state,railcom]
+100 listview[none]
+100 control[none]
+100 ports[16]
+100 state[0x0]
+100 railcom[...]
+<END 0 (OK)>
+<REPLY request(101, view)>
+<END 0 (OK)>
+<REPLY get(101)>
+101 objectclass[feedback-module]
+101 view[objectclass,view,listview,control,ports,state,railcom]
+101 listview[none]
+101 control[none]
+101 ports[16]
+101 state[0x0]
+101 railcom[...]
+<END 0 (OK)>
+set(1, stop)
+<REPLY set(1, stop)>
+<END 0 (OK)>
+release(85377748, view)
+release(85376980, view)
+release(84354132, view)
+release(84354036, view)
+release(84354468, view)
+release(86365988, view)
+release(84353748, view)
+release(86365364, view)
+release(86366132, view)
+release(86365460, view)
+release(86366228, view)
+release(86367220, view)
+release(86367028, view)
+release(86366692, view)
+release(11, view, viewswitch)
+release(84298516, view)
+release(54244180, view)
+release(54258052, view)
+release(54247204, view)
+release(82936532, view)
+release(85563780, view)
+release(54194260, view)
+release(54195316, view)
+release(54245428, view)
+release(54246388, view)
+release(54193348, view)
+release(82946948, view)
+release(54243412, view)
+release(87330644, view)
+release(54194740, view)
+release(54194452, view)
+release(54247444, view)
+release(82938692, view)
+release(82937876, view)
+release(54193828, view)
+release(54194164, view)
+release(87342356, view)
+release(10, view)
+release(1, view)
+release(26, view)
+release(100, view)
+release(200, view)
+release(20, view)
+<REPLY release(85377748, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(85376980, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(84354132, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(84354036, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(84354468, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(86365988, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(84353748, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(86365364, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(86366132, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(86365460, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(86366228, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(86367220, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(86367028, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(86366692, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(11, view, viewswitch)>
+<END 11 (unknown option at 19)>
+<REPLY release(84298516, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(54244180, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(54258052, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(54247204, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(82936532, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(85563780, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(54194260, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(54195316, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(54245428, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(54246388, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(54193348, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(82946948, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(54243412, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(87330644, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(54194740, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(54194452, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(54247444, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(82938692, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(82937876, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(54193828, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(54194164, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(87342356, view)>
+<END 21 (integer out of range at 16)>
+<REPLY release(10, view)>
+<END 0 (OK)>
+<REPLY release(1, view)>
+<END 0 (OK)>
+<REPLY release(26, view)>
+<END 0 (OK)>
+<REPLY release(100, view)>
+<END 0 (OK)>
+<REPLY release(200, view)>
+<END 15 (unknown object at 11)>
+<REPLY release(20, view)>
+<END 15 (unknown object at 10)>

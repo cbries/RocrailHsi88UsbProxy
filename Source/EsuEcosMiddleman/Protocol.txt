@@ -1,0 +1,36 @@
+﻿            /*
+             <REPLY get(26)>
+               26 objectclass[feedback-manager]
+               26 view[none]
+               26 listview[none]
+               26 control[none]
+               26 list
+               26 size[6]
+               <END 0 (OK)>
+             */
+
+            /*
+             get(100)
+             <REPLY get(100)>
+               100 objectclass[feedback−module]
+               100 view[ none ]
+               100 listview[none]
+               100 control[none]
+               100 ports[16]
+               100 state[0x5a22]
+               100 railcom[...]
+               <END 0 (OK) >
+               
+                . . . g e k u e r z t . . .
+               
+             get(105)
+             <REPLY get(105)>
+               105 objectclass[feedback−module]
+               105 view[none]
+               105 listview[none]
+               105 control[none]
+               105 ports[16]
+               105 state[0x0]
+               105 railcom[...]
+             <END 0 (OK)>
+             */

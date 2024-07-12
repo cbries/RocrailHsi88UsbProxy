@@ -1,0 +1,6 @@
+﻿<REPLY get(1, info)>
+1 ECoS2
+1 ProtocolVersion[0.5]
+1 ApplicationVersion[4.2.13]
+1 HardwareVersion[2.1]
+<END 0 (OK)>
