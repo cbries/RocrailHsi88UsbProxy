@@ -114,6 +114,13 @@ PIN     Data from HSI-88-USB
 16      i01018000
 ```
 
+# Setup 
+
+The runtime can be configured by json-based configuration file named `EsuEcosMiddleman.json`, it lays side-by-side to the executable within the build directory, e.g. `bin\Release\EsuEcosMiddleman.exe`.
+
+- `hsi/devicePath` is reqired to address you attached `HSI-88-USB` device
+- `ecos/ip` is the ip address of your ECoS
+
 # Runtime / Demonstration
 
 The following screenshots show the software in action for a real model railway.
