@@ -13,9 +13,25 @@
 		"port": 15471
 	},
 	"hsi": {
-		"left": 4,
+		"left": 5,
 		"middle": 0,
 		"right": 0,
 		"devicePath": "\\\\.\\HsiUsb1"
+	},
+	"filter": {
+		"enabled": true,
+		"objectIdsInfo": [
+			"Basisobjekt Devicemanager (id=20) (in Planung)",
+			"200 (ECoSDetector)",
+			"Feedback-Manager (id=26)"
+		],
+		"objectIds": [
+			20,
+			200,
+			26
+		],
+		"objectIdRanges": [
+			"> 50000000"
+		]
 	}
 }

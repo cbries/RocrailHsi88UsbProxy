@@ -296,8 +296,7 @@ namespace EsuEcosMiddleman
             //_cfgRuntime.Logger?.Log.Debug($"S88:\r\n{m}");
             return m;
         }
-
-
+        
         #region Server / Rocrail
 
         private void TcpServerInstanceOnMessageReceived(object sender, MessageEventArgs eventargs)
@@ -318,6 +317,15 @@ namespace EsuEcosMiddleman
             {
                 DoS88Handling(receivedCmd);
                 return;
+            }
+
+            if (_cfgRuntime.Filter.Enabled)
+            {
+                if (Filter.IsFiltered(_cfgRuntime.Filter, receivedCmd, _cfgRuntime.Logger))
+                {
+                    _cfgRuntime.Logger?.Log.Info($"Filtered message: {eventargs.Message}");
+                    return;
+                }
             }
 
             _cfgRuntime.Logger?.Log.Info($"Ecos [out]: {eventargs.Message}");

@@ -66,6 +66,7 @@
     <Compile Include="ECoS\ICommand.cs" />
     <Compile Include="ECoS\ICommandArgument.cs" />
     <Compile Include="ExceptionUtilities.cs" />
+    <Compile Include="Filter.cs" />
     <Compile Include="HSI88USB\DeviceInterface.cs" />
     <Compile Include="HSI88USB\NativeMethods.cs" />
     <Compile Include="ILogger.cs" />
