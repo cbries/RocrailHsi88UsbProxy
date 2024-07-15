@@ -91,9 +91,22 @@ namespace EsuEcosMiddleman.Network
             if (!_run) return true;
 
             _run = false;
-            _client?.Disconnect();
+            
+            try
+            {
+                _client?.Disconnect();
+            }
+            catch
+            {
+                // ignore
+            }
             _client = null;
-            Stopped?.Invoke(this, null!);
+
+            if(_invokeStopEvent)
+                Stopped?.Invoke(this, null!);
+
+            _invokeStopEvent = true;
+
             return true;
         }
 
@@ -137,9 +150,14 @@ namespace EsuEcosMiddleman.Network
             }
             catch (Exception ex)
             {
+                _invokeStopEvent = false;
                 Logger?.Log?.Error($"<Connector> Connection failed to {ipaddr}:{port} with {ex.Message}");
                 Failed?.Invoke(this, new MessageEventArgs($"Connection failed to {ipaddr}:{port} with {ex.Message}", ex));
             }
+
+            Stop();
         }
+
+        private bool _invokeStopEvent = true;
     }
 }

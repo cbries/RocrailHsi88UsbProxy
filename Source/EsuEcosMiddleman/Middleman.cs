@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using EsuEcosMiddleman.ECoS;
 using EsuEcosMiddleman.HSI88USB;
+using System.Net.NetworkInformation;
 
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
@@ -60,10 +61,15 @@ namespace EsuEcosMiddleman
                 _tcpEcosClient.MessageReceived += TcpEcosClientOnMessageReceived;
                 _tcpEcosClient.Started += TcpEcosClientOnStarted;
                 _tcpEcosClient.Failed += TcpEcosClientOnFailed;
-                var r = _tcpEcosClient.Start();
 
-                if (!r)
-                    _cfgRuntime.Logger?.Log.Fatal($"Ecos client handling failed.");
+                Task.Run(async () =>
+                {
+                    await CheckReconnect();
+                });
+                
+                //var r = _tcpEcosClient.Start();
+                //if (!r)
+                //    _cfgRuntime.Logger?.Log.Fatal($"Ecos client handling failed.");
             }
             else
             {
@@ -110,6 +116,51 @@ namespace EsuEcosMiddleman
         private void TcpEcosClientOnFailed(object sender, MessageEventArgs eventargs)
         {
             _cfgRuntime.Logger?.Log.Fatal($"Ecos client handling failed: {eventargs.Exception.GetExceptionMessages()}");
+
+            Task.Run(async () =>
+            {
+                await CheckReconnect();
+            });
+        }
+
+        private bool IsPingToEcosOk()
+        {
+            var pingSender = new Ping();
+            var options = new PingOptions
+            {
+                DontFragment = true
+            };
+            const int timeout = 120;
+            const string data = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            var buffer = Encoding.ASCII.GetBytes(data);
+            var reply = pingSender.Send(_cfgRuntime.CfgTargetEcos.Ip, timeout, buffer, options);
+
+            return (reply is { Status: IPStatus.Success });
+        }
+
+        private bool _isStopped = false;
+
+        private async Task CheckReconnect()
+        {
+            var ecosAddr = $"{_cfgRuntime.CfgTargetEcos.TargetIp}:{_cfgRuntime.CfgTargetEcos.TargetPort}";
+
+            while (!_isStopped)
+            {
+                if (IsPingToEcosOk())
+                {
+                    _cfgRuntime.Logger?.Log.Info($"Ping ok, try to connect to {ecosAddr}...");
+
+                    break;
+                }
+
+                _cfgRuntime.Logger?.Log.Info($"Try to ping again in 5 seconds to {ecosAddr}...");
+
+                await Task.Delay(TimeSpan.FromSeconds(5));
+            }
+
+            _isStopped = false;
+
+            _tcpEcosClient.Start();
         }
 
         private void TcpEcosClientOnStarted(object sender, EventArgs e)
