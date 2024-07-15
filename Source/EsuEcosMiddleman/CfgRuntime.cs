@@ -32,21 +32,11 @@ namespace EsuEcosMiddleman
 
     public interface IRuntimeConfiguration
     {
-        bool IsSimulation { get; set; }
-        bool IsS88Simulation { get; set; }
-        bool ConnectToEcos { get; set; }
     }
 
     public class RuntimeConfiguration : IRuntimeConfiguration
     {
-        [JsonProperty("isSimulation")]
-        public bool IsSimulation { get; set; } = false;
 
-        [JsonProperty("isS88Simulation")]
-        public bool IsS88Simulation { get; set; } = false;
-
-        [JsonProperty("connectToEcos")]
-        public bool ConnectToEcos { get; set; } = true;
     }
 
     internal interface ICfgRuntime

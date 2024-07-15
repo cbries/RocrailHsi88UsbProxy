@@ -3,10 +3,10 @@
 // File: ConnectorFaster.cs
 
 using System;
-using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using ThreadState = System.Threading.ThreadState;
+// ReSharper disable AsyncVoidLambda
 
 // ReSharper disable UnusedMember.Global
 
@@ -47,7 +47,7 @@ namespace EsuEcosMiddleman.Network
         {
             try
             {
-                if (_thread != null && _thread.IsAlive)
+                if (_thread is { IsAlive: true })
                     return true;
 
                 _thread = new Thread(async () =>
