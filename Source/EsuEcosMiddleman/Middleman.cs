@@ -139,6 +139,15 @@ namespace EsuEcosMiddleman
 
         #region HSI-88-USB
 
+        private void SendCurrentHsi88States()
+        {
+            for (var i = 0; i < _cfgRuntime.CfgHsi88.NumberMax; ++i)
+            {
+                var objId = 100 + i;
+                _handler.SendToRocrail(GetStateOfModule2(objId));
+            }
+        }
+
         private static readonly Random Rnd = new Random();
 
         private void Hsi88SimulateStates()
@@ -345,6 +354,8 @@ namespace EsuEcosMiddleman
         private void ServerInstanceOnClientConnected(object sender, ITcpClient client)
         {
             _cfgRuntime.Logger?.Log.Info($"Client connected: {client.Ip}");
+
+            SendCurrentHsi88States();
         }
 
         #endregion
