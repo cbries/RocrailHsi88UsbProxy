@@ -1,15 +1,17 @@
 ﻿// Copyright (c) 2024 Dr. Christian Benjamin Ries
 // Licensed under the MIT License
+
 using EsuEcosMiddleman.Network;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EsuEcosMiddleman.ECoS;
 using EsuEcosMiddleman.HSI88USB;
+using System.Net.NetworkInformation;
+
+// ReSharper disable RedundantDefaultMemberInitializer
 
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
@@ -26,6 +28,11 @@ namespace EsuEcosMiddleman
         private ConnectorFaster _tcpEcosClient;
         private DeviceInterface _hsi88Device;
         private MiddlemanHandler _handler;
+
+        public void Stop()
+        {
+            _isStopped = true;
+        }
 
         public static Middleman Instance(ICfgRuntime cfgRuntime)
         {
@@ -55,20 +62,14 @@ namespace EsuEcosMiddleman
                 Port = _cfgRuntime.CfgTargetEcos.TargetPort
             };
 
-            if (_cfgRuntime.RuntimeConfiguration.ConnectToEcos)
-            {
-                _tcpEcosClient.MessageReceived += TcpEcosClientOnMessageReceived;
-                _tcpEcosClient.Started += TcpEcosClientOnStarted;
-                _tcpEcosClient.Failed += TcpEcosClientOnFailed;
-                var r = _tcpEcosClient.Start();
+            _tcpEcosClient.MessageReceived += TcpEcosClientOnMessageReceived;
+            _tcpEcosClient.Started += TcpEcosClientOnStarted;
+            _tcpEcosClient.Failed += TcpEcosClientOnFailed;
 
-                if (!r)
-                    _cfgRuntime.Logger?.Log.Fatal($"Ecos client handling failed.");
-            }
-            else
+            Task.Run(async () =>
             {
-                _cfgRuntime.Logger?.Log.Info($"Ecos connection is disabled by user.");
-            }
+                await CheckReconnect();
+            });
 
             // init hsi state cache
             // offset of "100" because ecos starts the object id with 100 for s88 modules
@@ -81,28 +82,7 @@ namespace EsuEcosMiddleman
             _hsi88Device.Opened += Hsi88DeviceOnOpened;
             _hsi88Device.DataReceived += Hsi88DeviceOnDataReceived;
 
-            //
-            // simulate S88 module state
-            // random states send to Rocrail
-            //
-            if (_cfgRuntime.RuntimeConfiguration.IsS88Simulation)
-            {
-                Task.Run(async () =>
-                {
-                    var walltime = DateTime.Now + TimeSpan.FromSeconds(60);
-
-                    while (DateTime.Now < walltime)
-                    {
-                        Hsi88SimulateStates();
-
-                        await Task.Delay(TimeSpan.FromSeconds(3));
-                    }
-                });
-            }
-            else
-            {
-                await _hsi88Device.RunAsync();
-            }
+            await _hsi88Device.RunAsync();
 
             _handler = new MiddlemanHandler(_tcpServerInstance, _tcpEcosClient);
         }
@@ -110,11 +90,57 @@ namespace EsuEcosMiddleman
         private void TcpEcosClientOnFailed(object sender, MessageEventArgs eventargs)
         {
             _cfgRuntime.Logger?.Log.Fatal($"Ecos client handling failed: {eventargs.Exception.GetExceptionMessages()}");
+
+            Task.Run(async () =>
+            {
+                await CheckReconnect();
+            });
+        }
+
+        private bool IsPingToEcosOk()
+        {
+            var pingSender = new Ping();
+            var options = new PingOptions
+            {
+                DontFragment = true
+            };
+            const int timeout = 120;
+            const string data = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            var buffer = Encoding.ASCII.GetBytes(data);
+            var reply = pingSender.Send(_cfgRuntime.CfgTargetEcos.Ip, timeout, buffer, options);
+
+            return (reply is { Status: IPStatus.Success });
+        }
+
+        private bool _isStopped = false;
+
+        private async Task CheckReconnect()
+        {
+            var ecosAddr = $"{_cfgRuntime.CfgTargetEcos.TargetIp}:{_cfgRuntime.CfgTargetEcos.TargetPort}";
+
+            while (!_isStopped)
+            {
+                if (IsPingToEcosOk())
+                {
+                    _cfgRuntime.Logger?.Log.Info($"Ping ok, try to connect to {ecosAddr}...");
+
+                    break;
+                }
+
+                _cfgRuntime.Logger?.Log.Info($"Try to ping again in 5 seconds to {ecosAddr}...");
+
+                await Task.Delay(TimeSpan.FromSeconds(5));
+            }
+
+            _isStopped = false;
+
+            _tcpEcosClient.Start();
         }
 
         private void TcpEcosClientOnStarted(object sender, EventArgs e)
         {
-            // ignore
+            _tcpEcosClient.Send($"get(1, info){CommandLineTermination}");
+            _tcpEcosClient.Send($"get(1, status){CommandLineTermination}");
         }
 
         private void TcpEcosClientOnMessageReceived(object sender, MessageEventArgs eventargs)
@@ -148,18 +174,6 @@ namespace EsuEcosMiddleman
             }
         }
 
-        private static readonly Random Rnd = new Random();
-
-        private void Hsi88SimulateStates()
-        {
-            for (var i = 0; i < _cfgRuntime.CfgHsi88.NumberMax; ++i)
-            {
-                var objId = 100 + i;
-                _hsiStates[objId] = Rnd.Next(0, 0xffff).ToString("X");
-                _handler.SendToRocrail(GetStateOfModule2(objId));
-            }
-        }
-
         private readonly ConcurrentDictionary<int, string> _hsiStates = new ConcurrentDictionary<int, string>();
 
         private void Hsi88DeviceOnDataReceived(object sender, DeviceInterfaceData data)
@@ -178,57 +192,6 @@ namespace EsuEcosMiddleman
         }
 
         #endregion
-
-        private readonly Dictionary<string, string> _simulationData = new Dictionary<string, string>();
-
-        private void LoadSimulationData()
-        {
-            if (_simulationData.Count != 0) return;
-
-            var files = Directory.GetFiles(@"ECoS\SimulationData\", "*.txt", SearchOption.TopDirectoryOnly);
-            if (files.Length == 0) return;
-            foreach (var it in files)
-            {
-                try
-                {
-                    var fname = Path.GetFileNameWithoutExtension(it);
-                    var cnt = File.ReadAllText(it);
-                    if (!_simulationData.ContainsKey(fname))
-                        _simulationData[fname] = cnt;
-                }
-                catch
-                {
-                    // ignore
-                }
-            }
-        }
-
-        private string GenerateSimulationDataKey(ICommand command)
-        {
-            if (command == null) return string.Empty;
-            if (command.Type == CommandT.Get)
-                return $"Reply_" + string.Join("_", command.Arguments);
-            // add more if needed
-            return string.Empty;
-        }
-
-        private void DoRocrailSimulation(ICommand command)
-        {
-            LoadSimulationData();
-
-            var simkey = GenerateSimulationDataKey(command);
-            if (_simulationData.TryGetValue(simkey, out var simdata))
-            {
-                _handler.SendToRocrail(simdata);
-            }
-            else
-            {
-                if (command.ArgumentsHas("view"))
-                {
-                    _handler.SendToRocrail($"<REPLY request({command.ObjectId}, view)>{CommandLineTermination}<END 0 (OK)>");
-                }
-            }
-        }
 
         // filter for S88 commands
         // all other commands, queries, etc.
@@ -291,7 +254,7 @@ namespace EsuEcosMiddleman
                     var totalNoModules = cfgHsi88.NumberLeft + cfgHsi88.NumberMiddle + cfgHsi88.NumberRight;
                     var reply = $"<REPLY queryObjects(26,ports)>{CommandLineTermination}";
                     for (var i = 0; i < totalNoModules; ++i)
-                        reply += $"{100+i} ports[16]{CommandLineTermination}";
+                        reply += $"{100 + i} ports[16]{CommandLineTermination}";
                     reply += $"<END 0 (OK)>{CommandLineTermination}";
                     _handler.SendToRocrail(reply);
                 }
@@ -305,19 +268,12 @@ namespace EsuEcosMiddleman
             //_cfgRuntime.Logger?.Log.Debug($"S88:\r\n{m}");
             return m;
         }
-        
+
         #region Server / Rocrail
 
         private void TcpServerInstanceOnMessageReceived(object sender, MessageEventArgs eventargs)
         {
             _cfgRuntime.Logger?.Log.Info($"Rocrail [in]: {eventargs.Message}");
-
-            if (_cfgRuntime.RuntimeConfiguration.IsSimulation)
-            {
-                var cmdSimulation = CommandFactory.Create(eventargs.Message);
-                DoRocrailSimulation(cmdSimulation);
-                return;
-            }
 
             var receivedCmd = CommandFactory.Create(eventargs.Message);
             if (receivedCmd == null) return;
@@ -338,6 +294,7 @@ namespace EsuEcosMiddleman
             }
 
             _cfgRuntime.Logger?.Log.Info($"Ecos [out]: {eventargs.Message}");
+            
             _handler.SendToEcos(eventargs.Message);
         }
 

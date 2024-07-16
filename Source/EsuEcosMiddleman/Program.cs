@@ -4,7 +4,6 @@
 using System;
 using System.IO;
 using log4net;
-using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -15,7 +14,7 @@ namespace EsuEcosMiddleman
     {
         public class Logger : ILogger
         {
-            public ILog Log => LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+            public ILog Log => LogManager.GetLogger("EsuEcosMiddleman");
         }
 
         public static CfgRuntime Cfg { get; set; }
@@ -31,12 +30,12 @@ namespace EsuEcosMiddleman
             var middleman = Middleman.Instance(Cfg);
             await middleman.RunAsync();
 
-            if(Cfg.RuntimeConfiguration.IsSimulation)
-                loggerInstance.Log?.Info("Simulation mode is activated!");
             loggerInstance.Log?.Info($"Started {DateTime.Now:F}");
 
             Console.WriteLine("Enter any key to quit...");
             Console.ReadKey();
+
+            middleman.Stop();
         }
     }
 }
