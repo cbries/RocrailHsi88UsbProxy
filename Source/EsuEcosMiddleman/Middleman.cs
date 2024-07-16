@@ -139,7 +139,8 @@ namespace EsuEcosMiddleman
 
         private void TcpEcosClientOnStarted(object sender, EventArgs e)
         {
-            // ignore
+            _tcpEcosClient.Send($"get(1, info){CommandLineTermination}");
+            _tcpEcosClient.Send($"get(1, status){CommandLineTermination}");
         }
 
         private void TcpEcosClientOnMessageReceived(object sender, MessageEventArgs eventargs)

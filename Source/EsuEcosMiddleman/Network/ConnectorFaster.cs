@@ -129,6 +129,8 @@ namespace EsuEcosMiddleman.Network
                     ThreadInstance = _thread
                 };
 
+                _client.Failed += ClientOnFailed;
+
                 _client.LineReceived += (_, line) =>
                 {
                     if (string.IsNullOrEmpty(line)) return;
@@ -156,6 +158,12 @@ namespace EsuEcosMiddleman.Network
             }
 
             Stop();
+        }
+
+        private void ClientOnFailed(object sender, EventArgs e)
+        {
+            Logger?.Log?.Error($"<Connector> Connection closed unexpected!");
+            Failed?.Invoke(this, new MessageEventArgs($"Connection closed unexpected"));
         }
 
         private bool _invokeStopEvent = true;
