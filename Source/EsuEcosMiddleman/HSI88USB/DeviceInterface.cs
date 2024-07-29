@@ -175,10 +175,11 @@ namespace EsuEcosMiddleman.HSI88USB
         {
             Task.Run(async () =>
             {
-                var buffer = new byte[1024];
+                const int bufferSize = 131072;
+                var buffer = new byte[bufferSize];
                 var bytesRead = 0;
 
-                _fs = new FileStream(_handle, FileAccess.ReadWrite, 4096, isAsync: false);
+                _fs = new FileStream(_handle, FileAccess.ReadWrite, buffer.Length, isAsync: true);
 
                 // init terminal mode
                 Send("t\r");
@@ -219,7 +220,7 @@ namespace EsuEcosMiddleman.HSI88USB
                         }
                     }
 
-                    Thread.Sleep(50);
+                    Thread.Sleep(10);
                 }
             });
         }
