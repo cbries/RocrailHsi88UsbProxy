@@ -8,7 +8,6 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Win32.SafeHandles;
 using System.Threading;
-using System.IO.Pipes;
 
 namespace EsuEcosMiddleman.HSI88USB
 {

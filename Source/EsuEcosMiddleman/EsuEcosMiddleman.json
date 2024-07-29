@@ -15,6 +15,10 @@
 		"right": 0,
 		"devicePath": "\\\\.\\HsiUsb1"
 	},
+	"debounce": {
+		"onMs": 20,
+		"offMs": 2000
+	},
 	"filter": {
 		"enabled": true,
 		"objectIdsInfo": [

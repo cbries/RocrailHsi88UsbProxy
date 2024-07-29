@@ -4,6 +4,7 @@
 using EsuEcosMiddleman.Network;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -44,6 +45,8 @@ namespace EsuEcosMiddleman
         public async Task RunAsync()
         {
             if (_tcpServerInstance != null) return;
+            if (_cfgRuntime == null)
+                throw new Exception("No runtime configuration set.");
 
             _tcpServerInstance = new TcpServer(_cfgRuntime.CfgServer)
             {
@@ -74,7 +77,7 @@ namespace EsuEcosMiddleman
             // init hsi state cache
             // offset of "100" because ecos starts the object id with 100 for s88 modules
             for (var idx = 0; idx < 32; ++idx)
-                _hsiStates[100 + idx] = "0000";
+                _hsiStates[100 + idx] = new HsiStateData(_cfgRuntime.CfgDebounce);
 
             _hsi88Device = new DeviceInterface();
             _hsi88Device.Init(_cfgRuntime.CfgHsi88, _cfgRuntime);
@@ -174,7 +177,126 @@ namespace EsuEcosMiddleman
             }
         }
 
-        private readonly ConcurrentDictionary<int, string> _hsiStates = new ConcurrentDictionary<int, string>();
+        /// <summary>
+        /// Describes the state of a single S88-device, i.e. 16 pins.
+        /// </summary>
+        public class HsiStateData
+        {
+            private readonly ICfgDebounce _cfgDebounce;
+
+            public const int NumberOfPins = 16;
+            public string NativeHexData { get; private set; } = "0000";
+
+            private readonly Dictionary<int, DateTime> _states = new();
+
+            public HsiStateData(ICfgDebounce cfgDebounce)
+            {
+                _cfgDebounce = cfgDebounce;
+
+                for (var i = 0; i < NumberOfPins; ++i)
+                    _states.Add(i, DateTime.MinValue);
+            }
+
+            /// <summary>
+            /// Updates the internal information about a S88-device and its pin states.
+            /// When no update is applied the method returns `false`, in any other
+            /// cases `true` is returned.
+            /// This method provides so-called "Entprellung" to avoid undisired
+            /// internal updates when the track/s88 feedback is dirty and flickers the signal.
+            /// </summary>
+            /// <param name="dataset"></param>
+            /// <returns></returns>
+            public bool Update(string dataset)
+            {
+                if (string.IsNullOrEmpty(dataset)) return false;
+
+                var recentBinary = ToBinary(NativeHexData);
+                var updateBinary = ToBinary(dataset);
+                if (recentBinary.Equals(updateBinary, StringComparison.OrdinalIgnoreCase))
+                {
+                    for(var i = 0; i < NumberOfPins; ++i)
+                        _states[i] = DateTime.Now;
+
+                    return false;
+                }
+
+                char[] sbin = new[]
+                {
+                    '0', '0', '0', '0',
+                    '0', '0', '0', '0',
+                    '0', '0', '0', '0',
+                    '0', '0', '0', '0'
+                };
+
+                var res = false;
+
+                for (var i = 0; i < NumberOfPins; ++i)
+                {
+                    sbin[i] = recentBinary[i];
+
+                    var cOld = recentBinary[i];
+                    var cNew = updateBinary[i];
+                    if (cOld == cNew) continue;
+
+                    if (cNew == '1')
+                    {
+                        var isOnValid = (DateTime.Now - _states[i]).TotalMilliseconds > _cfgDebounce.On;
+                        _states[i] = DateTime.Now;
+                        if (!isOnValid) continue;
+                        
+                        res = true;
+                        sbin[i] = cNew;
+                    }
+                    else if (cNew == '0')
+                    {
+                        var isOffValid = (DateTime.Now - _states[i]).TotalMilliseconds > _cfgDebounce.Off;
+                        _states[i] = DateTime.Now;
+                        if (!isOffValid) continue;
+                        
+                        res = true;
+                        sbin[i] = cNew;
+                    }
+                }
+
+                NativeHexData = ToHex(new string(sbin));
+
+                return res;
+            }
+
+            /// <summary>
+            /// Example:
+            ///     ff => 11111111
+            ///     f0 => 11110000
+            /// </summary>
+            /// <param name="hexValue"></param>
+            /// <returns></returns>
+            private string ToBinary(string hexValue)
+            {
+                return string.Join(string.Empty,
+                    hexValue.Select(
+                        c => Convert.ToString(Convert.ToInt32(c.ToString(), 16), 2).PadLeft(4, '0')
+                    ));
+            }
+
+            /// <summary>
+            /// Example:
+            ///     11111111 => FF
+            ///     00001111 => 0F
+            /// </summary>
+            /// <param name="binaryValue"></param>
+            /// <returns></returns>
+            private string ToHex(string binaryValue)
+            {
+                var hex = string.Join(" ",
+                    Enumerable.Range(0, binaryValue.Length / 8)
+                        .Select(i => Convert.ToByte(binaryValue.Substring(i * 8, 8), 2).ToString("X2")));
+                if (hex.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                    hex = hex.Substring(2).Trim();
+                return hex;
+            }
+        }
+
+        private readonly ConcurrentDictionary<int, HsiStateData> _hsiStates = new ConcurrentDictionary<int, HsiStateData>();
 
         private bool _versionShown = false;
 
@@ -195,8 +317,17 @@ namespace EsuEcosMiddleman
             {
                 _cfgRuntime.Logger?.Log.Debug($"{it.Key} => {it.Value}");
 
+                // ESU ECoS feedback device object ids starts at "100"
+                // HSI-88-USB sends "1"-based port ids
+                // Finally: 99 + 1       => 100 (objId)
                 var objId = 99 + it.Key;
-                _hsiStates[objId] = it.Value;
+
+                var currentState = _hsiStates[objId].NativeHexData;
+                var changed = !currentState.Equals(it.Value, StringComparison.OrdinalIgnoreCase);
+                if (changed) continue;
+
+                _hsiStates[objId].Update(it.Value);
+                //_hsiStates[objId].NativeHexData = it.Value;
 
                 _handler.SendToRocrail(GetStateOfModule2(objId));
             }
@@ -274,7 +405,7 @@ namespace EsuEcosMiddleman
 
         private string GetStateOfModule2(int objectId)
         {
-            var stateLine = $"{objectId} state[0x{_hsiStates[objectId]}]";
+            var stateLine = $"{objectId} state[0x{_hsiStates[objectId].NativeHexData}]";
             var m = $"<EVENT {objectId}>{CommandLineTermination}{stateLine}{CommandLineTermination}<END 0 (OK)>";
             //_cfgRuntime.Logger?.Log.Debug($"S88:\r\n{m}");
             return m;
