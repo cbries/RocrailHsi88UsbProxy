@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Reflection;
 using log4net;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,6 +22,11 @@ namespace EsuEcosMiddleman
 
         private static async Task Main()
         {
+#if DEBUG
+            Console.WriteLine("Attach debugger and enter any key...");
+            Console.ReadKey();
+#endif
+
             var loggerInstance = new Logger();
 
             var cfgCnt = File.ReadAllText("EsuEcosMiddleman.json", Encoding.UTF8);
@@ -33,7 +39,8 @@ namespace EsuEcosMiddleman
             loggerInstance.Log?.Info($"Started {DateTime.Now:F}");
 
             Console.WriteLine("Enter any key to quit...");
-            Console.ReadKey();
+            while (Console.ReadKey().Key != ConsoleKey.Q) 
+                Console.WriteLine("Press 'Q' to quit the application.");
 
             middleman.Stop();
         }

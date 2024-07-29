@@ -20,6 +20,9 @@ namespace EsuEcosMiddleman.HSI88USB
         public const uint GENERIC_WRITE = 0x40000000;
         public const uint OPEN_EXISTING = 3;
 
+        public const uint FILE_SHARE_WRITE = 2;
+        public const uint FILE_SHARE_READ = 1;
+
         // Structures for SetupDi API
         [StructLayout(LayoutKind.Sequential)]
         public struct SP_DEVINFO_DATA

@@ -72,6 +72,7 @@
     <Compile Include="HSI88USB\NativeMethods.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="Middleman.cs" />
+    <Compile Include="Middleman.HsiStateData.cs" />
     <Compile Include="MiddlemanHandler.cs" />
     <Compile Include="Network\CfgTargetEcos.cs" />
     <Compile Include="Network\ConnectorFaster.cs" />
