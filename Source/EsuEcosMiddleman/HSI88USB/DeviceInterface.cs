@@ -179,7 +179,19 @@ namespace EsuEcosMiddleman.HSI88USB
                 var buffer = new byte[bufferSize];
                 var bytesRead = 0;
 
-                _fs = new FileStream(_handle, FileAccess.ReadWrite, buffer.Length, isAsync: true);
+                try
+                {
+                    _fs = new FileStream(_handle, FileAccess.ReadWrite, buffer.Length, isAsync: true);
+                }
+                catch (Exception ex)
+                {
+                    ex.ShowException();
+
+                    Failed?.Invoke(this, EventArgs.Empty);
+                    
+                    // highly fatal, no S88-data will be received nor handled
+                    return;
+                }
 
                 // init terminal mode
                 Send("t\r");
