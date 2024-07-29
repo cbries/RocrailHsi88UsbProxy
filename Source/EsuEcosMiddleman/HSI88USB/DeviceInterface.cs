@@ -175,10 +175,23 @@ namespace EsuEcosMiddleman.HSI88USB
         {
             Task.Run(async () =>
             {
-                var buffer = new byte[1024];
+                const int bufferSize = 131072;
+                var buffer = new byte[bufferSize];
                 var bytesRead = 0;
 
-                _fs = new FileStream(_handle, FileAccess.ReadWrite, 4096, isAsync: false);
+                try
+                {
+                    _fs = new FileStream(_handle, FileAccess.ReadWrite, buffer.Length, isAsync: false);
+                }
+                catch (Exception ex)
+                {
+                    ex.ShowException();
+
+                    Failed?.Invoke(this, new DeviceInterfaceEventArgs(ex.GetExceptionMessages()));
+                    
+                    // highly fatal, no S88-data will be received nor handled
+                    return;
+                }
 
                 // init terminal mode
                 Send("t\r");
@@ -197,6 +210,12 @@ namespace EsuEcosMiddleman.HSI88USB
                 //bytesRead = _fs.Read(buffer, 0, buffer.Length);
                 //var d2 = new DeviceInterfaceData(Encoding.ASCII.GetString(buffer, 0, bytesRead));
                 //DataReceived?.Invoke(this, d2);
+
+                // query device information/version
+                Send($"v\r");
+                bytesRead = _fs.Read(buffer, 0, buffer.Length);
+                var d2 = new DeviceInterfaceData(Encoding.ASCII.GetString(buffer, 0, bytesRead));
+                DataReceived?.Invoke(this, d2);
 
                 var tkn = _cancellationToken.Token;
 
@@ -219,7 +238,7 @@ namespace EsuEcosMiddleman.HSI88USB
                         }
                     }
 
-                    Thread.Sleep(50);
+                    Thread.Sleep(10);
                 }
             });
         }
