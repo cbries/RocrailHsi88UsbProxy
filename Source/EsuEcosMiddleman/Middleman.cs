@@ -147,7 +147,7 @@ namespace EsuEcosMiddleman
         {
             var line = eventargs.Message.Trim();
 
-            _cfgRuntime.Logger?.Log.Info($"ECoS [in] --> Rocrail [out]: {line}");
+            _cfgRuntime.Logger?.Log.Debug($"ECoS [in] --> Rocrail [out]: {line}");
 
             _handler.SendToRocrail(line);
         }
@@ -178,11 +178,11 @@ namespace EsuEcosMiddleman
 
         private void Hsi88DeviceOnDataReceived(object sender, DeviceInterfaceData data)
         {
-            _cfgRuntime.Logger?.Log.Info($"HSI-88: {data.Data}");
+            _cfgRuntime.Logger?.Log.Debug($"HSI-88: {data.Data}");
 
             foreach (var it in data.States)
             {
-                _cfgRuntime.Logger?.Log.Info($"{it.Key} => {it.Value}");
+                _cfgRuntime.Logger?.Log.Debug($"{it.Key} => {it.Value}");
 
                 var objId = 99 + it.Key;
                 _hsiStates[objId] = it.Value;
@@ -273,7 +273,7 @@ namespace EsuEcosMiddleman
 
         private void TcpServerInstanceOnMessageReceived(object sender, MessageEventArgs eventargs)
         {
-            _cfgRuntime.Logger?.Log.Info($"Rocrail [in]: {eventargs.Message}");
+            _cfgRuntime.Logger?.Log.Debug($"Rocrail [in]: {eventargs.Message}");
 
             var receivedCmd = CommandFactory.Create(eventargs.Message);
             if (receivedCmd == null) return;
@@ -288,12 +288,12 @@ namespace EsuEcosMiddleman
             {
                 if (Filter.IsFiltered(_cfgRuntime.Filter, receivedCmd, _cfgRuntime.Logger))
                 {
-                    _cfgRuntime.Logger?.Log.Info($"Filtered message: {eventargs.Message}");
+                    _cfgRuntime.Logger?.Log.Debug($"Filtered message: {eventargs.Message}");
                     return;
                 }
             }
 
-            _cfgRuntime.Logger?.Log.Info($"Ecos [out]: {eventargs.Message}");
+            _cfgRuntime.Logger?.Log.Debug($"Ecos [out]: {eventargs.Message}");
             
             _handler.SendToEcos(eventargs.Message);
         }
