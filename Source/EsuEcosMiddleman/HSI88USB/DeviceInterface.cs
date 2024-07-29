@@ -181,13 +181,13 @@ namespace EsuEcosMiddleman.HSI88USB
 
                 try
                 {
-                    _fs = new FileStream(_handle, FileAccess.ReadWrite, buffer.Length, isAsync: true);
+                    _fs = new FileStream(_handle, FileAccess.ReadWrite, buffer.Length, isAsync: false);
                 }
                 catch (Exception ex)
                 {
                     ex.ShowException();
 
-                    Failed?.Invoke(this, EventArgs.Empty);
+                    Failed?.Invoke(this, new DeviceInterfaceEventArgs(ex.GetExceptionMessages()));
                     
                     // highly fatal, no S88-data will be received nor handled
                     return;
@@ -210,6 +210,12 @@ namespace EsuEcosMiddleman.HSI88USB
                 //bytesRead = _fs.Read(buffer, 0, buffer.Length);
                 //var d2 = new DeviceInterfaceData(Encoding.ASCII.GetString(buffer, 0, bytesRead));
                 //DataReceived?.Invoke(this, d2);
+
+                // query device information/version
+                Send($"v\r");
+                bytesRead = _fs.Read(buffer, 0, buffer.Length);
+                var d2 = new DeviceInterfaceData(Encoding.ASCII.GetString(buffer, 0, bytesRead));
+                DataReceived?.Invoke(this, d2);
 
                 var tkn = _cancellationToken.Token;
 

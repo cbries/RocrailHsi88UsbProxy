@@ -176,9 +176,20 @@ namespace EsuEcosMiddleman
 
         private readonly ConcurrentDictionary<int, string> _hsiStates = new ConcurrentDictionary<int, string>();
 
+        private bool _versionShown = false;
+
         private void Hsi88DeviceOnDataReceived(object sender, DeviceInterfaceData data)
         {
             _cfgRuntime.Logger?.Log.Debug($"HSI-88: {data.Data}");
+
+            if (!_versionShown && data.Data.StartsWith("V", StringComparison.OrdinalIgnoreCase))
+            {
+                _versionShown = true;
+
+                _cfgRuntime.Logger?.Log.Info($"HSI-88: {data.Data}");
+
+                return;
+            }
 
             foreach (var it in data.States)
             {
@@ -294,7 +305,7 @@ namespace EsuEcosMiddleman
             }
 
             _cfgRuntime.Logger?.Log.Debug($"Ecos [out]: {eventargs.Message}");
-            
+
             _handler.SendToEcos(eventargs.Message);
         }
 
