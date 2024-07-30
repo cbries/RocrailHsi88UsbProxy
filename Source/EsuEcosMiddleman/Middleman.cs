@@ -17,7 +17,7 @@ using System.Net.NetworkInformation;
 
 namespace EsuEcosMiddleman
 {
-    internal class Middleman
+    internal partial class Middleman
     {
         private const ushort ObjectIdS88 = 26;
         private const string CommandLineTermination = "\r\n";
@@ -44,6 +44,8 @@ namespace EsuEcosMiddleman
         public async Task RunAsync()
         {
             if (_tcpServerInstance != null) return;
+            if (_cfgRuntime == null)
+                throw new Exception("No runtime configuration set.");
 
             _tcpServerInstance = new TcpServer(_cfgRuntime.CfgServer)
             {
@@ -74,13 +76,13 @@ namespace EsuEcosMiddleman
             // init hsi state cache
             // offset of "100" because ecos starts the object id with 100 for s88 modules
             for (var idx = 0; idx < 32; ++idx)
-                _hsiStates[100 + idx] = "0000";
+                _hsiStates[100 + idx] = new HsiStateData(_cfgRuntime.CfgDebounce);
 
             _hsi88Device = new DeviceInterface();
-            _hsi88Device.Init(_cfgRuntime.CfgHsi88, _cfgRuntime);
             _hsi88Device.Failed += Hsi88DeviceOnFailed;
             _hsi88Device.Opened += Hsi88DeviceOnOpened;
             _hsi88Device.DataReceived += Hsi88DeviceOnDataReceived;
+            _hsi88Device.Init(_cfgRuntime.CfgHsi88, _cfgRuntime);
 
             await _hsi88Device.RunAsync();
 
@@ -170,11 +172,12 @@ namespace EsuEcosMiddleman
             for (var i = 0; i < _cfgRuntime.CfgHsi88.NumberMax; ++i)
             {
                 var objId = 100 + i;
-                _handler.SendToRocrail(GetStateOfModule2(objId));
+                var state = GetStateOfModule2(objId);
+                _handler.SendToRocrail(state);
             }
         }
 
-        private readonly ConcurrentDictionary<int, string> _hsiStates = new ConcurrentDictionary<int, string>();
+        private readonly ConcurrentDictionary<int, HsiStateData> _hsiStates = new ConcurrentDictionary<int, HsiStateData>();
 
         private bool _versionShown = false;
 
@@ -195,14 +198,61 @@ namespace EsuEcosMiddleman
             {
                 _cfgRuntime.Logger?.Log.Debug($"{it.Key} => {it.Value}");
 
+                // ESU ECoS feedback device object ids starts at "100"
+                // HSI-88-USB sends "1"-based port ids
+                // Finally: 99 + 1       => 100 (objId)
                 var objId = 99 + it.Key;
-                _hsiStates[objId] = it.Value;
 
-                _handler.SendToRocrail(GetStateOfModule2(objId));
+                // TEST ONLY A SINGLE DEVICE
+                //if(objId != 101) continue;
+
+                //hsiPort.ShowStates(12, false);
+
+                var hsiPort = _hsiStates[objId];
+                var r = hsiPort.Update(it.Value);
+
+                //hsiPort.ShowStates(12, false);
+
+                if (r)
+                {
+                    var stateToSend = GetStateOfModule2(objId);
+                    _cfgRuntime.Logger?.Log.Debug($"S88->Rocrail: {stateToSend}");
+                    _handler.SendToRocrail(stateToSend);
+                }
             }
         }
 
         #endregion
+        
+        private readonly Random _rnd = new();
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="simdata">e.g. "i01022c05"</param>
+        internal void DoSimulation(string simdata = "")
+        {
+            if (_cfgRuntime == null) return;
+            
+            _cfgRuntime.Logger?.Log.Info("S88 Simulation");
+            
+            if (string.IsNullOrEmpty(simdata))
+            {
+                // generate line
+                // e.g. "i01022c05"
+
+                simdata = "i";
+                simdata += _cfgRuntime.CfgHsi88.NumberMax.ToString("D2");
+                simdata += _rnd.Next(1, _cfgRuntime.CfgHsi88.NumberMax).ToString("D2");
+
+                var hexLeft = _rnd.Next(0, 255);
+                var hexRight = _rnd.Next(0, 255);
+
+                simdata += hexLeft.ToString("X2") + hexRight.ToString("X2");
+            }
+
+            Hsi88DeviceOnDataReceived(this, new DeviceInterfaceData(simdata.Trim()));
+        }
 
         // filter for S88 commands
         // all other commands, queries, etc.
@@ -274,7 +324,7 @@ namespace EsuEcosMiddleman
 
         private string GetStateOfModule2(int objectId)
         {
-            var stateLine = $"{objectId} state[0x{_hsiStates[objectId]}]";
+            var stateLine = $"{objectId} state[0x{_hsiStates[objectId].NativeHexData}]";
             var m = $"<EVENT {objectId}>{CommandLineTermination}{stateLine}{CommandLineTermination}<END 0 (OK)>";
             //_cfgRuntime.Logger?.Log.Debug($"S88:\r\n{m}");
             return m;

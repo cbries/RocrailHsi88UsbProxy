@@ -30,6 +30,20 @@ namespace EsuEcosMiddleman
         public string DevicePath { get; set; } = @"\\.\HsiUsb1";
     }
 
+    internal interface ICfgDebounce
+    {
+        uint CheckInterval { get; set; }
+        uint On { get; set; }
+        uint Off { get; set; }
+    }
+
+    public class CfgDebounce : ICfgDebounce
+    {
+        [JsonProperty("checkIntervalMs")] public uint CheckInterval { get; set; }
+        [JsonProperty("onMs")] public uint On { get; set; }
+        [JsonProperty("offMs")] public uint Off { get; set; }
+    }
+
     public interface IRuntimeConfiguration
     {
     }
@@ -45,6 +59,7 @@ namespace EsuEcosMiddleman
         CfgServer CfgServer { get; set; }
         CfgTargetEcos CfgTargetEcos { get; set; }
         ICfgHsi88 CfgHsi88 { get; set; }
+        ICfgDebounce CfgDebounce { get; set; }
         IRuntimeConfiguration RuntimeConfiguration { get; set; }
         ICfgFilter Filter { get; set; }
     }
@@ -53,15 +68,12 @@ namespace EsuEcosMiddleman
     {
         [JsonIgnore]
         public ILogger Logger { get; set; }
-        [JsonProperty("server")]
-        public CfgServer CfgServer { get; set; } = new();
-        [JsonProperty("ecos")]
-        public CfgTargetEcos CfgTargetEcos { get; set; } = new();
-        [JsonProperty("hsi")]
-        public ICfgHsi88 CfgHsi88 { get; set; } = new CfgHsi88();
-        [JsonProperty("runtime")]
-        public IRuntimeConfiguration RuntimeConfiguration { get; set; } = new RuntimeConfiguration();
 
+        [JsonProperty("server")] public CfgServer CfgServer { get; set; } = new();
+        [JsonProperty("ecos")] public CfgTargetEcos CfgTargetEcos { get; set; } = new();
+        [JsonProperty("hsi")] public ICfgHsi88 CfgHsi88 { get; set; } = new CfgHsi88();
+        [JsonProperty("debounce")] public ICfgDebounce CfgDebounce { get; set; } = new CfgDebounce();
+        [JsonProperty("runtime")] public IRuntimeConfiguration RuntimeConfiguration { get; set; } = new RuntimeConfiguration();
         [JsonProperty("filter")] public ICfgFilter Filter { get; set; } = new CfgFilter();
     }
 

@@ -118,8 +118,27 @@ PIN     Data from HSI-88-USB
 
 The runtime can be configured by json-based configuration file named `EsuEcosMiddleman.json`, it lays side-by-side to the executable within the build directory, e.g. `bin\Release\EsuEcosMiddleman.exe`.
 
-- `hsi/devicePath` is reqired to address you attached `HSI-88-USB` device
+- `hsi/devicePath` is required to address you attached `HSI-88-USB` device
 - `ecos/ip` is the ip address of your ECoS
+
+## Debouncing
+
+It has been shown that the HSI-88-USB detects any change, as well very small triggers. Sometimes very often when trains crosses a single detection area. This can slow down any railway control software because of status/command flooding and when several logging mechanism are switched on (e.g. `log4net` with `INFO` or `DEBUG` level).
+
+To reduce this a debouncing functionality can help. When any approach exist in the hardware directly, just it, because it will be much faster and reliable. In any other cases you can configure global debouncing walltime in `EsuEcosMiddleware.json`.
+
+The values are milliseconds, only real pin state changes after this walltime are handled and provided to connected clients.
+
+```json
+{
+  ...
+    "debounce": {
+      "onMs": 20,
+      "offMs": 2000
+    },
+   ...
+}
+``` 
 
 # Runtime / Demonstration
 

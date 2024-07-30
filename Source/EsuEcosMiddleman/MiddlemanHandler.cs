@@ -13,8 +13,6 @@ namespace EsuEcosMiddleman
         IExchange toEcos
         )
     {
-        public static string LineTermination = "\r\n";
-
         public bool SendToRocrail(string data)
         {
             if (string.IsNullOrEmpty(data)) return true;
