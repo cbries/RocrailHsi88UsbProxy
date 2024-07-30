@@ -16,6 +16,7 @@
 		"devicePath": "\\\\.\\HsiUsb1"
 	},
 	"debounce": {
+		"checkIntervalMs": 125,
 		"onMs": 20,
 		"offMs": 2000
 	},

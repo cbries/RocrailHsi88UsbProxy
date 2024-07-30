@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.IO;
 using System.Threading.Tasks;
@@ -27,6 +28,12 @@ namespace EsuEcosMiddleman.HSI88USB
         public DateTime Dt { get; set; } = DateTime.Now;
         public string Data { get; set; } = data;
 
+        /// <summary>
+        /// When the information is based on "i00"-feedback
+        /// the value is `true`, otherwise `false`.
+        /// </summary>
+        public bool EventData => Data.Length > 0 && Data[0] == 'i';
+
         /*
          * Sample data:
          * i01040506
@@ -37,17 +44,23 @@ namespace EsuEcosMiddleman.HSI88USB
             <Modulnummer> <HighByte> <LowByte>
             <Modulnummer> <HighByte> <LowByte>
             <CR>
-
             -> i 01 02 2c05
-        */
+
+         * Check sor "m00..." as well, e.g.
+         * m05019db60201c8036416043df6050000
+         * This line is the feedback of polling the current state.
+         * "i00" is an event information got when the device signals changes.
+         * These are two ways to get information from the S88-device.
+         */
 
         public int NumberOfModules
         {
             get
             {
                 if (string.IsNullOrEmpty(Data)) return 0;
-                if (!Data.StartsWith("i")) return 0;
+                if (!Data.StartsWith("i") && !Data.StartsWith("m")) return 0;
                 var data = Data.TrimStart('i').Trim();
+                data = data.TrimStart('m').Trim();
                 var p0 = data.Substring(0, 2).Trim();
                 if (int.TryParse(p0, out var v))
                     return v;
@@ -66,7 +79,7 @@ namespace EsuEcosMiddleman.HSI88USB
                 var res = new Dictionary<int, string>();
                 var noOfModules = NumberOfModules;
                 if (noOfModules == 0) return res;
-                var p = Data.Substring("i00".Length);
+                var p = Data.Substring("i00".Length); // as well "m00".Length
                 if (string.IsNullOrEmpty(p)) return res;
                 for (var idx = 0; idx < p.Length; idx += 6)
                 {
@@ -104,7 +117,7 @@ namespace EsuEcosMiddleman.HSI88USB
             _handle = NativeMethods.CreateFile(
                 _cfgHsi88.DevicePath,
                 NativeMethods.GENERIC_READ | NativeMethods.GENERIC_WRITE,
-                0,
+                NativeMethods.FILE_SHARE_READ | NativeMethods.FILE_SHARE_WRITE,
                 IntPtr.Zero,
                 NativeMethods.OPEN_EXISTING,
                 0,
@@ -193,22 +206,10 @@ namespace EsuEcosMiddleman.HSI88USB
                 }
 
                 // init terminal mode
-                Send("t\r");
+                Send("t1\r");
                 bytesRead = _fs.Read(buffer, 0, buffer.Length);
                 var d0 = new DeviceInterfaceData(Encoding.ASCII.GetString(buffer, 0, bytesRead));
                 DataReceived?.Invoke(this, d0);
-
-                // init number of shift registers
-                Send($"s{_cfgRuntime.CfgHsi88.NumberLeft:D2}{_cfgRuntime.CfgHsi88.NumberMiddle:D2}{_cfgRuntime.CfgHsi88.NumberRight:D2}\r");
-                bytesRead = _fs.Read(buffer, 0, buffer.Length);
-                var d1 = new DeviceInterfaceData(Encoding.ASCII.GetString(buffer, 0, bytesRead));
-                DataReceived?.Invoke(this, d1);
-
-                //// query current state
-                //Send("m\r");
-                //bytesRead = _fs.Read(buffer, 0, buffer.Length);
-                //var d2 = new DeviceInterfaceData(Encoding.ASCII.GetString(buffer, 0, bytesRead));
-                //DataReceived?.Invoke(this, d2);
 
                 // query device information/version
                 Send($"v\r");
@@ -216,28 +217,43 @@ namespace EsuEcosMiddleman.HSI88USB
                 var d2 = new DeviceInterfaceData(Encoding.ASCII.GetString(buffer, 0, bytesRead));
                 DataReceived?.Invoke(this, d2);
 
+                // init number of shift registers
+                Send($"s{_cfgRuntime.CfgHsi88.NumberLeft:D2}{_cfgRuntime.CfgHsi88.NumberMiddle:D2}{_cfgRuntime.CfgHsi88.NumberRight:D2}\r");
+                bytesRead = _fs.Read(buffer, 0, buffer.Length);
+                var d1 = new DeviceInterfaceData(Encoding.ASCII.GetString(buffer, 0, bytesRead));
+                DataReceived?.Invoke(this, d1);
+                
                 var tkn = _cancellationToken.Token;
 
                 while (!tkn.IsCancellationRequested)
                 {
-                    if (_fs.CanRead)
+                    Send("m\r");
+
+                    bytesRead = _fs.Read(buffer, 0, buffer.Length);
+                    
+                    if (bytesRead > 0)
                     {
-                        bytesRead = await _fs.ReadAsync(buffer, 0, buffer.Length, tkn);
-
-                        if (bytesRead > 0)
+                        var text = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                        var lines = text.Split(new[] { '\r' }, StringSplitOptions.RemoveEmptyEntries);
+                        foreach (var line in lines)
                         {
-                            var text = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                            var lines = text.Split(new []{'\r'}, StringSplitOptions.RemoveEmptyEntries);
-                            foreach (var line in lines)
-                            {
-                                if (string.IsNullOrEmpty(line)) continue;
+                            if (string.IsNullOrEmpty(line)) continue;
+                            var m = line.Trim();
+                            var data = new DeviceInterfaceData(m);
+                            if(!data.EventData)
+                                DataReceived?.Invoke(this, data);
 
-                                DataReceived?.Invoke(this, new DeviceInterfaceData(line.Trim()));
-                            }
+                            //Trace.WriteLine($"NumberOfModules: {data.NumberOfModules}");
+                            //for (var i = 1; i <= data.NumberOfModules; ++i)
+                            //    Trace.Write($"{i} {data.States[i]} ");
+                            //Trace.WriteLine(string.Empty);
+                            //Trace.WriteLine(m);
                         }
                     }
 
-                    Thread.Sleep(10);
+                    var intervalMs = _cfgRuntime.CfgDebounce.CheckInterval;
+                    if (intervalMs < 10) intervalMs = 50;
+                    await Task.Delay(TimeSpan.FromMilliseconds(intervalMs));
                 }
             });
         }

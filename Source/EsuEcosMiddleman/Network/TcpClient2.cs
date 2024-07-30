@@ -33,8 +33,7 @@ namespace EsuEcosMiddleman.Network
 
         public void Send(string data)
         {
-            if(base.SendMessage(data))
-                Trace.WriteLine("IExchange::Send() ok");
+            base.SendMessage(data);
         }
         
         #endregion

@@ -4,7 +4,7 @@
 using EsuEcosMiddleman.Network;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,7 +18,7 @@ using System.Net.NetworkInformation;
 
 namespace EsuEcosMiddleman
 {
-    internal class Middleman
+    internal partial class Middleman
     {
         private const ushort ObjectIdS88 = 26;
         private const string CommandLineTermination = "\r\n";
@@ -80,10 +80,10 @@ namespace EsuEcosMiddleman
                 _hsiStates[100 + idx] = new HsiStateData(_cfgRuntime.CfgDebounce);
 
             _hsi88Device = new DeviceInterface();
-            _hsi88Device.Init(_cfgRuntime.CfgHsi88, _cfgRuntime);
             _hsi88Device.Failed += Hsi88DeviceOnFailed;
             _hsi88Device.Opened += Hsi88DeviceOnOpened;
             _hsi88Device.DataReceived += Hsi88DeviceOnDataReceived;
+            _hsi88Device.Init(_cfgRuntime.CfgHsi88, _cfgRuntime);
 
             await _hsi88Device.RunAsync();
 
@@ -173,126 +173,8 @@ namespace EsuEcosMiddleman
             for (var i = 0; i < _cfgRuntime.CfgHsi88.NumberMax; ++i)
             {
                 var objId = 100 + i;
-                _handler.SendToRocrail(GetStateOfModule2(objId));
-            }
-        }
-
-        /// <summary>
-        /// Describes the state of a single S88-device, i.e. 16 pins.
-        /// </summary>
-        public class HsiStateData
-        {
-            private readonly ICfgDebounce _cfgDebounce;
-
-            public const int NumberOfPins = 16;
-            public string NativeHexData { get; private set; } = "0000";
-
-            private readonly Dictionary<int, DateTime> _states = new();
-
-            public HsiStateData(ICfgDebounce cfgDebounce)
-            {
-                _cfgDebounce = cfgDebounce;
-
-                for (var i = 0; i < NumberOfPins; ++i)
-                    _states.Add(i, DateTime.MinValue);
-            }
-
-            /// <summary>
-            /// Updates the internal information about a S88-device and its pin states.
-            /// When no update is applied the method returns `false`, in any other
-            /// cases `true` is returned.
-            /// This method provides so-called "Entprellung" to avoid undisired
-            /// internal updates when the track/s88 feedback is dirty and flickers the signal.
-            /// </summary>
-            /// <param name="dataset"></param>
-            /// <returns></returns>
-            public bool Update(string dataset)
-            {
-                if (string.IsNullOrEmpty(dataset)) return false;
-
-                var recentBinary = ToBinary(NativeHexData);
-                var updateBinary = ToBinary(dataset);
-                if (recentBinary.Equals(updateBinary, StringComparison.OrdinalIgnoreCase))
-                {
-                    for(var i = 0; i < NumberOfPins; ++i)
-                        _states[i] = DateTime.Now;
-
-                    return false;
-                }
-
-                char[] sbin = new[]
-                {
-                    '0', '0', '0', '0',
-                    '0', '0', '0', '0',
-                    '0', '0', '0', '0',
-                    '0', '0', '0', '0'
-                };
-
-                var res = false;
-
-                for (var i = 0; i < NumberOfPins; ++i)
-                {
-                    sbin[i] = recentBinary[i];
-
-                    var cOld = recentBinary[i];
-                    var cNew = updateBinary[i];
-                    if (cOld == cNew) continue;
-
-                    if (cNew == '1')
-                    {
-                        var isOnValid = (DateTime.Now - _states[i]).TotalMilliseconds > _cfgDebounce.On;
-                        _states[i] = DateTime.Now;
-                        if (!isOnValid) continue;
-                        
-                        res = true;
-                        sbin[i] = cNew;
-                    }
-                    else if (cNew == '0')
-                    {
-                        var isOffValid = (DateTime.Now - _states[i]).TotalMilliseconds > _cfgDebounce.Off;
-                        _states[i] = DateTime.Now;
-                        if (!isOffValid) continue;
-                        
-                        res = true;
-                        sbin[i] = cNew;
-                    }
-                }
-
-                NativeHexData = ToHex(new string(sbin));
-
-                return res;
-            }
-
-            /// <summary>
-            /// Example:
-            ///     ff => 11111111
-            ///     f0 => 11110000
-            /// </summary>
-            /// <param name="hexValue"></param>
-            /// <returns></returns>
-            private string ToBinary(string hexValue)
-            {
-                return string.Join(string.Empty,
-                    hexValue.Select(
-                        c => Convert.ToString(Convert.ToInt32(c.ToString(), 16), 2).PadLeft(4, '0')
-                    ));
-            }
-
-            /// <summary>
-            /// Example:
-            ///     11111111 => FF
-            ///     00001111 => 0F
-            /// </summary>
-            /// <param name="binaryValue"></param>
-            /// <returns></returns>
-            private string ToHex(string binaryValue)
-            {
-                var hex = string.Join(" ",
-                    Enumerable.Range(0, binaryValue.Length / 8)
-                        .Select(i => Convert.ToByte(binaryValue.Substring(i * 8, 8), 2).ToString("X2")));
-                if (hex.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-                    hex = hex.Substring(2).Trim();
-                return hex;
+                var state = GetStateOfModule2(objId);
+                _handler.SendToRocrail(state);
             }
         }
 
@@ -324,16 +206,58 @@ namespace EsuEcosMiddleman
 
                 var currentState = _hsiStates[objId].NativeHexData;
                 var changed = !currentState.Equals(it.Value, StringComparison.OrdinalIgnoreCase);
-                if (changed) continue;
+                if (!changed) continue;
 
-                _hsiStates[objId].Update(it.Value);
-                //_hsiStates[objId].NativeHexData = it.Value;
+                var currentBinary = _hsiStates[objId].ToBinary2(_hsiStates[objId].NativeHexData);
+                Trace.WriteLine($"{objId} current: {currentBinary}");
 
-                _handler.SendToRocrail(GetStateOfModule2(objId));
+                var r = _hsiStates[objId].Update(it.Value);
+
+                var nextBinary = _hsiStates[objId].ToBinary2(_hsiStates[objId].NativeHexData);
+                Trace.WriteLine($"{objId} next:    {nextBinary}");
+
+                Trace.WriteLine($"Updated: {r}");
+
+                if (r)
+                {
+                    var stateToSend = GetStateOfModule2(objId);
+                    _cfgRuntime.Logger?.Log.Debug($"S88->Rocrail: {stateToSend}");
+                    _handler.SendToRocrail(stateToSend);
+                }
             }
         }
 
         #endregion
+        
+        private readonly Random _rnd = new();
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="simdata">e.g. "i01022c05"</param>
+        internal void DoSimulation(string simdata = "")
+        {
+            if (_cfgRuntime == null) return;
+            
+            _cfgRuntime.Logger?.Log.Info("S88 Simulation");
+            
+            if (string.IsNullOrEmpty(simdata))
+            {
+                // generate line
+                // e.g. "i01022c05"
+
+                simdata = "i";
+                simdata += _cfgRuntime.CfgHsi88.NumberMax.ToString("D2");
+                simdata += _rnd.Next(1, _cfgRuntime.CfgHsi88.NumberMax).ToString("D2");
+
+                var hexLeft = _rnd.Next(0, 255);
+                var hexRight = _rnd.Next(0, 255);
+
+                simdata += hexLeft.ToString("X2") + hexRight.ToString("X2");
+            }
+
+            Hsi88DeviceOnDataReceived(this, new DeviceInterfaceData(simdata.Trim()));
+        }
 
         // filter for S88 commands
         // all other commands, queries, etc.

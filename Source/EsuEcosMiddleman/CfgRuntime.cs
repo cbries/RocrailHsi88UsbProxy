@@ -2,7 +2,6 @@
 // Licensed under the MIT License
 
 using System.Collections.Generic;
-using System.Diagnostics;
 using EsuEcosMiddleman.Network;
 using Newtonsoft.Json;
 
@@ -33,16 +32,16 @@ namespace EsuEcosMiddleman
 
     internal interface ICfgDebounce
     {
+        uint CheckInterval { get; set; }
         uint On { get; set; }
         uint Off { get; set; }
     }
 
     public class CfgDebounce : ICfgDebounce
     {
-        [JsonProperty("onMs")]
-        public uint On { get; set; }
-        [JsonProperty("offMs")]
-        public uint Off { get; set; }
+        [JsonProperty("checkIntervalMs")] public uint CheckInterval { get; set; }
+        [JsonProperty("onMs")] public uint On { get; set; }
+        [JsonProperty("offMs")] public uint Off { get; set; }
     }
 
     public interface IRuntimeConfiguration
