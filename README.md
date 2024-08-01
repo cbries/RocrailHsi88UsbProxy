@@ -1,3 +1,8 @@
+
+[![Build and UnitTests](https://github.com/cbries/RocrailHsi88UsbProxy/actions/workflows/msbuild.yml/badge.svg)](https://github.com/cbries/RocrailHsi88UsbProxy/actions/workflows/msbuild.yml)
+
+[![Deploy Nightly](https://github.com/cbries/RocrailHsi88UsbProxy/actions/workflows/dailyBuild.yml/badge.svg)](https://github.com/cbries/RocrailHsi88UsbProxy/actions/workflows/dailyBuild.yml)
+
 # Motivation
 
 I used a ESU ECoS 50210 and several LDT's S88 feedback devices. After a while the ECoS' feedback device does not recognizes any input anymore, the LDT's still worked after adding an `HSI-88-N`. But then I realized that `Rocrail` does not support the `HSI-88-USB`, only the old fashioned `HSI-88` with serial connection (no USB!).
