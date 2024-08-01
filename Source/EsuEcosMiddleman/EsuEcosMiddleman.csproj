@@ -98,7 +98,6 @@
     </None>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
     <Content Include="ECoS\SimulationData\Reply_1_info.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -108,5 +107,5 @@
     </Content>
     <Content Include="Protocol.txt" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />  
 </Project>

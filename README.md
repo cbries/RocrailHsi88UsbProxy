@@ -68,6 +68,12 @@ The following figure provides a bird-view of this approach.
 
 Tested and build for Windows environments only.
 
+# Release 
+
+When any change is pushed the daily build will provide a new portable Release.
+
+Just unzip and run the executable.
+
 # Testbed
 
 ## Byteorder

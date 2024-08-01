@@ -1,0 +1,56 @@
+name: Deploy Nightly
+#on: [push]
+on:
+  schedule:
+   - cron: '0 2 * * *' # run at 2 AM UTC 
+  # Allows you to run this workflow manually from the Actions tab
+  #workflow_dispatch:
+
+permissions: write-all
+  
+env:
+  SOURCE_DIR: Source
+  SOLUTION_FILE_PATH: Source/EsuEcosMiddleman.sln
+  BUILD_CONFIGURATION: Release
+
+jobs:
+  nightly: 
+    name: Deploy Nightly
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      # build your asset first
+        - uses: actions/checkout@v2
+
+        - name: Add MSBuild to PATH
+          uses: microsoft/setup-msbuild@v1
+
+        - name: Restore NuGet packages
+          working-directory: ${{env.GITHUB_WORKSPACE}}
+          run: nuget restore ${{env.SOLUTION_FILE_PATH}}
+
+        - name: Build
+          working-directory: ${{env.GITHUB_WORKSPACE}}
+          # Add additional options to the MSBuild command line here (like platform or verbosity level).
+          # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
+          run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} ${{env.SOLUTION_FILE_PATH}}
+
+        - name: Create Release Zip
+          working-directory: ${{env.GITHUB_WORKSPACE}}
+          run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /t:ZipRelease ${{env.SOURCE_DIR}}/buildRelease.proj
+
+        - name: Deploy Windows Release
+          if: matrix.os == 'windows-latest'
+          uses: WebFreak001/deploy-nightly@v1.1.0
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # automatically provided by github actions
+          with:
+            upload_url: https://uploads.github.com/repos/cbries/RocrailHsi88UsbProxy/releases/168203075/assets{?name,label} # find out this value by opening https://api.github.com/repos/<owner>/<repo>/releases in your browser and copy the full "upload_url" value including the {?name,label} part
+            release_id: 168203075 # same as above (id can just be taken out the upload_url, it's used to find old releases)
+            asset_path: ./Source/RocrailHsi88UsbProxy-dailybuild/zip/RocrailHsi88UsbProxy-dailybuild.zip # path to archive to upload
+            asset_name: RocrailHsi88UsbProxy-dailybuild-$$.zip # name to upload the release as, use $$ to insert date (YYYYMMDD) and 6 letter commit hash
+            asset_content_type: application/zip # required by GitHub API
+            max_releases: 7 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
