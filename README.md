@@ -142,7 +142,7 @@ The values are milliseconds, only real pin state changes after this walltime are
       "onMs": 20,
       "offMs": 2000
     },
-   ...
+  ...
 }
 ``` 
 
