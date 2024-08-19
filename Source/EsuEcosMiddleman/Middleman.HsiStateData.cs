@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace EsuEcosMiddleman;
@@ -14,9 +13,13 @@ internal partial class Middleman
     public class HsiStateData
     {
         private readonly ICfgDebounce _cfgDebounce;
-
+        public const int ObjectIdOffset = 100; // offset of "100" because ecos starts the object id with 100 for s88 modules
+        public int ObjectId { get; } // ESU ECoS internal identifier
+        public int HsiDeviceId => ObjectId - ObjectIdOffset + 1;
         public const int NumberOfPins = 16;
         public const string ZeroHexValues = "0000";
+        public const char Bin1 = '1';
+        public const char Bin0 = '0';
 
         private string _nativeHexData = ZeroHexValues;
 
@@ -28,8 +31,10 @@ internal partial class Middleman
 
         private readonly Dictionary<int, DateTime> _states = new();
 
-        public HsiStateData(ICfgDebounce cfgDebounce)
+        public HsiStateData(int objectId, ICfgDebounce cfgDebounce)
         {
+            ObjectId = objectId;
+
             _cfgDebounce = cfgDebounce;
 
             for (var i = 0; i < NumberOfPins; ++i)
@@ -54,14 +59,13 @@ internal partial class Middleman
 
             var sbin = new[]
             {
-                '0', '0', '0', '0',
-                '0', '0', '0', '0',
-                '0', '0', '0', '0',
-                '0', '0', '0', '0'
+                Bin0, Bin0, Bin0, Bin0,
+                Bin0, Bin0, Bin0, Bin0,
+                Bin0, Bin0, Bin0, Bin0,
+                Bin0, Bin0, Bin0, Bin0
             };
 
-            var res = false;
-
+            var changeCounter = 0;
 
             for (var i = 0; i < NumberOfPins; ++i)
             {
@@ -75,63 +79,61 @@ internal partial class Middleman
 
                     continue;
                 }
-                 
+
                 var stateTime = _states[i];
                 var deltaMs = (DateTime.Now - stateTime).TotalMilliseconds;
 
                 var bounceOn = _cfgDebounce.On;
                 var bounceOff = _cfgDebounce.Off;
 
-                if (cOld == '0') // was off, must wait bounceOff before update
+                if (cOld == Bin0) // was off, must wait bounceOff before update
                 {
-                    res = deltaMs > bounceOn;
-
-                    if (res)
+                    if (deltaMs > bounceOn)
                     {
-                        sbin[i] = '1';
+                        sbin[i] = Bin1;
+
+                        ++changeCounter;
                     }
                 }
-                else if (cOld == '1') // was on, must wait bounceOn beforeUpdate
+                else if (cOld == Bin1) // was on, must wait bounceOn beforeUpdate
                 {
-                    res = deltaMs > bounceOff;
-
-                    if (res)
+                    if (deltaMs > bounceOff)
                     {
-                        sbin[i] = '0';
+                        sbin[i] = Bin0;
+
+                        ++changeCounter;
                     }
                 }
             }
 
             NativeHexData = ToHex(new string(sbin));
 
-            return res;
+            return changeCounter > 0;
         }
 
 #if DEBUG
-        public void ShowStates(int specificPin = -1, bool showHeadline = true)
+        public void ShowStates(uint portId, int specificPin = -1, bool showHeadline = true, Action<string> logCallback = null)
         {
             var recentBinary = ToBinary(NativeHexData);
 
-            if(showHeadline)
-                Trace.WriteLine("ShowStates");
+            if (showHeadline)
+                logCallback?.Invoke("ShowStates");
 
-            for (var i = 0; i < NumberOfPins; ++i)
+            if (specificPin == -1)
             {
-                if (specificPin == -1)
+                for (var i = 0; i < NumberOfPins; ++i)
                 {
                     var dt = _states[i];
                     var delta = DateTime.Now - dt;
-                    Trace.WriteLine($"   {recentBinary[i]}  {dt}  {delta.TotalMilliseconds}");
+                    logCallback?.Invoke($"   {recentBinary[i]}  {dt}  {delta.TotalMilliseconds}");
                 }
-                else
-                {
-                    if (specificPin == i + 1)
-                    {
-                        var dt = _states[i];
-                        var delta = DateTime.Now - dt;
-                        Trace.WriteLine($"   {recentBinary[i]}  {dt}  {delta.TotalMilliseconds}");
-                    }
-                }
+            }
+            else
+            {
+                var pinRight = NumberOfPins - specificPin;
+                var dt = _states[pinRight];
+                var delta = DateTime.Now - dt;
+                logCallback?.Invoke($"{portId}:{specificPin}   {recentBinary[pinRight]}  {dt}  {delta.TotalMilliseconds}");
             }
         }
 #endif
@@ -143,7 +145,7 @@ internal partial class Middleman
         /// </summary>
         /// <param name="hexValue"></param>
         /// <returns></returns>
-        private string ToBinary(string hexValue)
+        public static string ToBinary(string hexValue)
         {
             return string.Join(string.Empty,
                 hexValue.Select(
@@ -158,7 +160,7 @@ internal partial class Middleman
         /// </summary>
         /// <param name="binaryValue"></param>
         /// <returns></returns>
-        private string ToHex(string binaryValue)
+        public static string ToHex(string binaryValue)
         {
             var hex = string.Join(string.Empty,
                 Enumerable.Range(0, binaryValue.Length / 8)

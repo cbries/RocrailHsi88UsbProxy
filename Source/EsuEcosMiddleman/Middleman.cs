@@ -76,7 +76,11 @@ namespace EsuEcosMiddleman
             // init hsi state cache
             // offset of "100" because ecos starts the object id with 100 for s88 modules
             for (var idx = 0; idx < 32; ++idx)
-                _hsiStates[100 + idx] = new HsiStateData(_cfgRuntime.CfgDebounce);
+            {
+                var objectId = HsiStateData.ObjectIdOffset + idx;
+
+                _hsiStates[objectId] = new HsiStateData(objectId, _cfgRuntime.CfgDebounce);
+            }
 
             _hsi88Device = new DeviceInterface();
             _hsi88Device.Failed += Hsi88DeviceOnFailed;
@@ -199,19 +203,17 @@ namespace EsuEcosMiddleman
                 _cfgRuntime.Logger?.Log.Debug($"{it.Key} => {it.Value}");
 
                 // ESU ECoS feedback device object ids starts at "100"
-                // HSI-88-USB sends "1"-based port ids
+                // HSI-88-USB sends "1"-based port ids => hsiDeviceId
                 // Finally: 99 + 1       => 100 (objId)
-                var objId = 99 + it.Key;
-
-                // TEST ONLY A SINGLE DEVICE
-                //if(objId != 101) continue;
-
-                //hsiPort.ShowStates(12, false);
+                var hsiDeviceId = it.Key;
+                var objId = 99 + hsiDeviceId;
 
                 var hsiPort = _hsiStates[objId];
                 var r = hsiPort.Update(it.Value);
 
-                //hsiPort.ShowStates(12, false);
+#if DEBUG
+                if (r) ShowStates(hsiPort);
+#endif
 
                 if (r)
                 {
@@ -222,37 +224,27 @@ namespace EsuEcosMiddleman
             }
         }
 
-        #endregion
-        
-        private readonly Random _rnd = new();
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="simdata">e.g. "i01022c05"</param>
-        internal void DoSimulation(string simdata = "")
+#if DEBUG
+        private void ShowStates(HsiStateData hsiPort)
         {
-            if (_cfgRuntime == null) return;
-            
-            _cfgRuntime.Logger?.Log.Info("S88 Simulation");
-            
-            if (string.IsNullOrEmpty(simdata))
+            if (hsiPort == null) return;
+            if (!_cfgRuntime.DebugConfiguration.Enabled) return;
+
+            foreach (var input in _cfgRuntime.DebugConfiguration.Inputs)
             {
-                // generate line
-                // e.g. "i01022c05"
-
-                simdata = "i";
-                simdata += _cfgRuntime.CfgHsi88.NumberMax.ToString("D2");
-                simdata += _rnd.Next(1, _cfgRuntime.CfgHsi88.NumberMax).ToString("D2");
-
-                var hexLeft = _rnd.Next(0, 255);
-                var hexRight = _rnd.Next(0, 255);
-
-                simdata += hexLeft.ToString("X2") + hexRight.ToString("X2");
+                var portId = CfgDebug.GetPortNumber(input.Key);
+                if (portId == 0) continue;
+                if (portId != hsiPort.HsiDeviceId) continue;
+                foreach (var pin in input.Value)
+                    hsiPort.ShowStates(portId, pin, false, (msg) =>
+                    {
+                        _cfgRuntime.Logger.Log.Info($"{msg}");
+                    });
             }
-
-            Hsi88DeviceOnDataReceived(this, new DeviceInterfaceData(simdata.Trim()));
         }
+#endif
+
+#endregion
 
         // filter for S88 commands
         // all other commands, queries, etc.
