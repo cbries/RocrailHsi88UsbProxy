@@ -20,6 +20,17 @@
 		"onMs": 25,
 		"offMs": 2000
 	},
+	"debug": {
+		"__doc": "In general, the number of ports is related to `hsi::left + hsi::middle + hsi::right` and should be the same count.",
+		"enabled": false,
+		"inputs": {
+			"port1": [],
+			"port2": [],
+			"port3": [],
+			"port4": [],
+			"port5": []
+		}
+	},
 	"filter": {
 		"enabled": true,
 		"objectIdsInfo": [
