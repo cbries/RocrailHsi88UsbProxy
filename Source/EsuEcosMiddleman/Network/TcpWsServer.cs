@@ -9,10 +9,11 @@ namespace EsuEcosMiddleman.Network
         private WatsonWsServer _serverInstance;
         private readonly List<ClientMetadata> _clients = new();
 
+        public ILogger Logger { get; set; }
+
         public void Start(int port)
         {
-            var hostAddr = $"http://localhost:{port}/s88";
-            _serverInstance = new WatsonWsServer("localhost", port);
+            _serverInstance = new WatsonWsServer("+", port);
             _serverInstance.ClientConnected += ServerInstanceOnClientConnected;
             _serverInstance.ClientDisconnected += ServerInstanceOnClientDisconnected;
             _serverInstance.Start();
@@ -22,14 +23,14 @@ namespace EsuEcosMiddleman.Network
         {
             var client = e.Client;
 
-            Console.WriteLine($"New connection: {client.IpPort}  Guid: {client.Guid}");
+            Logger?.Log?.Info($"New connection: {client.IpPort}  Guid: {client.Guid}");
 
             _clients.Add(client);
         }
 
         private void ServerInstanceOnClientDisconnected(object sender, DisconnectionEventArgs e)
         {
-            Console.WriteLine($"Disconnected: {e.Client.Guid}");
+            Logger?.Log?.Info($"Disconnected: {e.Client.Guid}");
         }
 
         public async void Send(string data)
