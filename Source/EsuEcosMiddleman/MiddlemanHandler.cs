@@ -10,7 +10,8 @@ namespace EsuEcosMiddleman
 
     internal class MiddlemanHandler(
         IExchange toRocrail,
-        IExchange toEcos
+        IExchange toEcos,
+        IExchange toWs
         )
     {
         public bool SendToRocrail(string data)
@@ -24,6 +25,13 @@ namespace EsuEcosMiddleman
         {
             if (string.IsNullOrEmpty(data)) return true;
             toEcos?.Send(data);
+            return true;
+        }
+
+        public bool SendToWs(string data)
+        {
+            if (string.IsNullOrEmpty(data)) return true;
+            toWs?.Send(data);
             return true;
         }
     }

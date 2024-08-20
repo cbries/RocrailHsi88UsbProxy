@@ -77,11 +77,12 @@ namespace EsuEcosMiddleman
 
     public interface IRuntimeConfiguration
     {
+        bool IsSimulation { get; set; }
     }
 
     public class RuntimeConfiguration : IRuntimeConfiguration
     {
-
+        [JsonProperty("isSimulation")] public bool IsSimulation { get; set; } = false;
     }
 
     internal interface ICfgRuntime

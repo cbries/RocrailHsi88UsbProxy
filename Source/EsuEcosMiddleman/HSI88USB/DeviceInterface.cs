@@ -142,11 +142,14 @@ namespace EsuEcosMiddleman.HSI88USB
             _cfgHsi88 = cfgHsi88;
             _cfgRuntime = cfgRuntime;
 
+            _cancellationToken = new CancellationTokenSource();
+
+            if (cfgRuntime.RuntimeConfiguration.IsSimulation)
+                return;
+
             try
             {
                 Open();
-
-                _cancellationToken = new CancellationTokenSource();
             }
             catch (Exception ex)
             {
@@ -181,6 +184,41 @@ namespace EsuEcosMiddleman.HSI88USB
             }
 
             return false;
+        }
+
+        private Random _rnd = new Random();
+
+        public async Task RunSimulationAsync()
+        {
+            Task.Run(async () =>
+            {
+                var tkn = _cancellationToken.Token;
+
+                while (!tkn.IsCancellationRequested)
+                {
+                    var noOfDevices = _cfgHsi88.NumberMax;
+                    var deviceNo = 0;
+                    var m = $"m" + noOfDevices.ToString("D2");
+                    for (var i = 0; i < noOfDevices * 2; ++i)
+                    {
+                        if (i % 2 == 0)
+                        {
+                            m += (deviceNo + 1).ToString("D2");
+                            ++deviceNo;
+                        }
+                        var state = _rnd.Next(0, 255);
+                        m += state.ToString("X2");
+                    }
+                    
+                    var data = new DeviceInterfaceData(m);
+                    if (!data.EventData)
+                        DataReceived?.Invoke(this, data);
+
+                    var intervalMs = _cfgRuntime.CfgDebounce.CheckInterval;
+                    if (intervalMs < 10) intervalMs = 50;
+                    await Task.Delay(TimeSpan.FromMilliseconds(intervalMs));
+                }
+            });
         }
 
         public async Task RunAsync()

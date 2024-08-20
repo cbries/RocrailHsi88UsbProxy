@@ -1,5 +1,6 @@
 ﻿{
 	"runtime": {
+		"isSimulation": false
 	},
 	"server": {
 		"bindingIp": "127.0.0.1",

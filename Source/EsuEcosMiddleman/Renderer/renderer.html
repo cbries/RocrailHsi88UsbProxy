@@ -1,0 +1,48 @@
+﻿<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <script src="jquery-3.7.1.min.js"></script>
+    <script src="renderer.js"></script>
+    <title>S88 Renderer</title>
+    <style>
+        .port {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+        }
+
+        .portNone {
+            height: 48px;
+            font-weight: bold;
+        }
+
+        .pin {
+            width: 48px;
+            height: 48px;
+            margin: 2px;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .pinDisabled {
+            background-color: rgba(240, 95, 95, 1);
+        }
+
+        .pinEnabled {
+            background-color: darkgreen;
+        }
+    </style>
+</head>
+<body>
+    <h2>Left</h2>
+    <div id="s88left"></div>
+
+    <h2>Middle</h2>
+    <div id="s88middle"></div>
+
+    <h2>Right</h2>
+    <div id="s88right"></div>
+</body>
+</html>
