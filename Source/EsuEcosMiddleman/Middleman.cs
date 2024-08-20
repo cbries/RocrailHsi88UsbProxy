@@ -69,7 +69,10 @@ namespace EsuEcosMiddleman
 
         private void InitWsServer()
         {
-            _tcpWsServerInstance = new TcpWsServer();
+            _tcpWsServerInstance = new TcpWsServer
+            {
+                Logger = _cfgRuntime.Logger
+            };
             _tcpWsServerInstance.Start(_cfgRuntime.CfgServer.ListenPort + 1);
         }
 
