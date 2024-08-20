@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using EsuEcosMiddleman.ECoS;
 using EsuEcosMiddleman.HSI88USB;
 using System.Net.NetworkInformation;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 // ReSharper disable RedundantDefaultMemberInitializer
 
@@ -25,9 +27,12 @@ namespace EsuEcosMiddleman
         private static Middleman _instance;
         private ICfgRuntime _cfgRuntime;
         private TcpServer _tcpServerInstance;
+        private TcpWsServer _tcpWsServerInstance;
         private ConnectorFaster _tcpEcosClient;
         private DeviceInterface _hsi88Device;
         private MiddlemanHandler _handler;
+
+        private bool IsSimulation => _cfgRuntime.RuntimeConfiguration.IsSimulation;
 
         public void Stop()
         {
@@ -39,6 +44,33 @@ namespace EsuEcosMiddleman
             if (_instance != null) return _instance;
             _instance = new Middleman { _cfgRuntime = cfgRuntime };
             return _instance;
+        }
+
+        private void InitEcos()
+        {
+            if (IsSimulation) return;
+
+            _tcpEcosClient = new ConnectorFaster
+            {
+                IpAddress = _cfgRuntime.CfgTargetEcos.TargetIp.ToString(),
+                Logger = _cfgRuntime.Logger,
+                Port = _cfgRuntime.CfgTargetEcos.TargetPort
+            };
+
+            _tcpEcosClient.MessageReceived += TcpEcosClientOnMessageReceived;
+            _tcpEcosClient.Started += TcpEcosClientOnStarted;
+            _tcpEcosClient.Failed += TcpEcosClientOnFailed;
+
+            Task.Run(async () =>
+            {
+                await CheckReconnect();
+            });
+        }
+
+        private void InitWsServer()
+        {
+            _tcpWsServerInstance = new TcpWsServer();
+            _tcpWsServerInstance.Start(_cfgRuntime.CfgServer.ListenPort + 1);
         }
 
         public async Task RunAsync()
@@ -57,21 +89,8 @@ namespace EsuEcosMiddleman
             _tcpServerInstance.Stopped += TcpServerInstanceOnStopped;
             _tcpServerInstance.Listen();
 
-            _tcpEcosClient = new ConnectorFaster
-            {
-                IpAddress = _cfgRuntime.CfgTargetEcos.TargetIp.ToString(),
-                Logger = _cfgRuntime.Logger,
-                Port = _cfgRuntime.CfgTargetEcos.TargetPort
-            };
-
-            _tcpEcosClient.MessageReceived += TcpEcosClientOnMessageReceived;
-            _tcpEcosClient.Started += TcpEcosClientOnStarted;
-            _tcpEcosClient.Failed += TcpEcosClientOnFailed;
-
-            Task.Run(async () =>
-            {
-                await CheckReconnect();
-            });
+            InitEcos();
+            InitWsServer();
 
             // init hsi state cache
             // offset of "100" because ecos starts the object id with 100 for s88 modules
@@ -88,9 +107,12 @@ namespace EsuEcosMiddleman
             _hsi88Device.DataReceived += Hsi88DeviceOnDataReceived;
             _hsi88Device.Init(_cfgRuntime.CfgHsi88, _cfgRuntime);
 
-            await _hsi88Device.RunAsync();
+            if (IsSimulation)
+                await _hsi88Device.RunSimulationAsync();
+            else
+                await _hsi88Device.RunAsync();
 
-            _handler = new MiddlemanHandler(_tcpServerInstance, _tcpEcosClient);
+            _handler = new MiddlemanHandler(_tcpServerInstance, _tcpEcosClient, _tcpWsServerInstance);
         }
 
         private void TcpEcosClientOnFailed(object sender, MessageEventArgs eventargs)
@@ -176,8 +198,9 @@ namespace EsuEcosMiddleman
             for (var i = 0; i < _cfgRuntime.CfgHsi88.NumberMax; ++i)
             {
                 var objId = 100 + i;
-                var state = GetStateOfModule2(objId);
-                _handler.SendToRocrail(state);
+
+                _handler.SendToRocrail(GetStateOfModule(objId));
+                _handler.SendToWs(GetStateOfModule(objId, true));
             }
         }
 
@@ -217,9 +240,12 @@ namespace EsuEcosMiddleman
 
                 if (r)
                 {
-                    var stateToSend = GetStateOfModule2(objId);
+                    var stateToSend = GetStateOfModule(objId);
                     _cfgRuntime.Logger?.Log.Debug($"S88->Rocrail: {stateToSend}");
                     _handler.SendToRocrail(stateToSend);
+
+                    var stateJsonToSend = GetStateOfModule(objId, true);
+                    _handler.SendToWs(stateJsonToSend);
                 }
             }
         }
@@ -244,7 +270,7 @@ namespace EsuEcosMiddleman
         }
 #endif
 
-#endregion
+        #endregion
 
         // filter for S88 commands
         // all other commands, queries, etc.
@@ -270,7 +296,7 @@ namespace EsuEcosMiddleman
                     sbGet.Append($"  {objId} view[none]{CommandLineTermination}");
                     sbGet.Append($"  {objId} listview[none]{CommandLineTermination}");
                     sbGet.Append($"  {objId} ports[16]{CommandLineTermination}");
-                    sbGet.Append($"  {objId} state[{GetStateOfModule2(objId)}]{CommandLineTermination}");
+                    sbGet.Append($"  {objId} state[{GetStateOfModule(objId)}]{CommandLineTermination}");
 
                     _handler.SendToRocrail($"<REPLY get({objId}>){CommandLineTermination}{sbGet}{CommandLineTermination}<END 0 (OK)>");
                 }
@@ -288,7 +314,8 @@ namespace EsuEcosMiddleman
                            get(103, state)
                          */
                         case "state":
-                            _handler.SendToRocrail(GetStateOfModule2(objId));
+                            _handler.SendToRocrail(GetStateOfModule(objId));
+                            _handler.SendToWs(GetStateOfModule(objId, true));
                             break;
                     }
                 }
@@ -314,11 +341,37 @@ namespace EsuEcosMiddleman
             }
         }
 
-        private string GetStateOfModule2(int objectId)
+        private string GetStateOfModule(int objectId, bool asJson = false)
         {
+            if (asJson)
+            {
+                var jsonEvent = new JObject
+                {
+                    ["objectId"] = objectId,
+                    ["port"] = objectId - 100 + 1,
+                    ["state"] = new JObject
+                    {
+                        ["hex"] = _hsiStates[objectId].NativeHexData,
+                        ["binary"] = _hsiStates[objectId].NativeBinaryData
+                    } 
+                };
+
+                var json = new JObject
+                {
+                    ["event"] = jsonEvent,
+                    ["info"] = new JObject
+                    {
+                        ["left"] = _cfgRuntime.CfgHsi88.NumberLeft,
+                        ["middle"] = _cfgRuntime.CfgHsi88.NumberMiddle,
+                        ["right"] = _cfgRuntime.CfgHsi88.NumberRight
+                    }
+                };
+
+                return json.ToString(Formatting.None);
+            }
+
             var stateLine = $"{objectId} state[0x{_hsiStates[objectId].NativeHexData}]";
             var m = $"<EVENT {objectId}>{CommandLineTermination}{stateLine}{CommandLineTermination}<END 0 (OK)>";
-            //_cfgRuntime.Logger?.Log.Debug($"S88:\r\n{m}");
             return m;
         }
 

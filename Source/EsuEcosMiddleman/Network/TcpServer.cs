@@ -63,8 +63,8 @@ namespace EsuEcosMiddleman.Network
         {
             try
             {
-                Logger?.Log?.Info("<TcpServer> Listen started...");
-
+                Logger?.Log?.Info($"<TcpServer> Listen started... (Port: {cfgServer.ListenPort})");
+                
                 while (true)
                 {
                     var client = _tcpServer.AcceptTcpClient();

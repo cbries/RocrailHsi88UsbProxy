@@ -155,9 +155,11 @@ The values are milliseconds, only real pin state changes after this walltime are
 
 The following screenshots show the software in action for a real model railway.
 
-![Startup](Documentation/runtime/01_Startup.png "Startup")
+![Startup1](Documentation/runtime/01_Startup.png "Startup")
 
-![Startup](Documentation/runtime/02_RocrailConnectsToLocalProxy.png "Establishing connection to local instance")
+![Startup2](Documentation/runtime/02_RocrailConnectsToLocalProxy.png "Establishing connection to local instance")
 
-![Startup](Documentation/runtime/03_ListenToS88.png "S88 Feedback")
+![Startup3](Documentation/runtime/03_ListenToS88.png "S88 Feedback")
+
+![Startup4](Documentation/runtime/04_renderer_.png "S88 Renderer")
 

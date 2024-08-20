@@ -29,6 +29,8 @@ internal partial class Middleman
             private set => _nativeHexData = value?.Trim() ?? ZeroHexValues;
         }
 
+        public string NativeBinaryData => ToBinary(NativeHexData);
+
         private readonly Dictionary<int, DateTime> _states = new();
 
         public HsiStateData(int objectId, ICfgDebounce cfgDebounce)
