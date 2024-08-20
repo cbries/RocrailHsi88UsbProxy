@@ -161,5 +161,5 @@ The following screenshots show the software in action for a real model railway.
 
 ![Startup3](Documentation/runtime/03_ListenToS88.png "S88 Feedback")
 
-![Startup4](Documentation/runtime/04_renderer_.png "S88 Renderer")
+![Startup4](Documentation/runtime/04_renderer.png "S88 Renderer")
 
