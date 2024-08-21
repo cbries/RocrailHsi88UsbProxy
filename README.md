@@ -65,9 +65,13 @@ b) the second for all other data
 	
 It will work like a normal connection, as it would established when used directly. But the S88-data is fetched from the `HSI-88-USB` device and weaved into the data stream.
 
-The following figure provides a bird-view of this approach.
+The following figure provides a bird-view of the architecture.
 
 ![Architecture Overview](Documentation/Architecture01.png "Architecture Overview")
+
+In addition, an extra channel as WebSocket connection is added to allow any renderer to access the current feedback state. Open `Renderer/renderer.html` in the browser of your choice to view the web-based S88-renderer.
+
+![Startup5](Documentation/runtime/05_renderer.png "S88 Renderer")
 
 # Environment
 
