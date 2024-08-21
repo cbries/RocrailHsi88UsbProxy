@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// Copyright (c) 2024 Dr. Christian Benjamin Ries
+// Licensed under the MIT License
+
+using System;
 using EsuEcosMiddleman.ECoS;
 
 namespace EsuEcosMiddleman

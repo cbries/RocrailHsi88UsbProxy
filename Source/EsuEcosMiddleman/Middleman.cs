@@ -176,11 +176,11 @@ namespace EsuEcosMiddleman
 
         private void TcpEcosClientOnMessageReceived(object sender, MessageEventArgs eventargs)
         {
-            var line = eventargs.Message.Trim();
+            var line = eventargs.Message?.Trim();
 
-            _cfgRuntime.Logger?.Log.Debug($"ECoS [in] --> Rocrail [out]: {line}");
+            _cfgRuntime.Logger?.Log?.Debug($"ECoS [in] --> Rocrail [out]: {line}");
 
-            _handler.SendToRocrail(line);
+            _handler?.SendToRocrail(line);
         }
 
         private void Hsi88DeviceOnOpened(object sender, EventArgs eventargs)

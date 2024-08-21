@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) 2024 Dr. Christian Benjamin Ries
+// Licensed under the MIT License
+
+using System;
 using System.Collections.Generic;
 using WatsonWebsocket;
 
@@ -17,6 +20,8 @@ namespace EsuEcosMiddleman.Network
             _serverInstance.ClientConnected += ServerInstanceOnClientConnected;
             _serverInstance.ClientDisconnected += ServerInstanceOnClientDisconnected;
             _serverInstance.Start();
+
+            Logger?.Log?.Info($"<TcpWsServer> Listen started... (Port: {port})");
         }
 
         private void ServerInstanceOnClientConnected(object sender, ConnectionEventArgs e)

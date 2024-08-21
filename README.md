@@ -81,7 +81,7 @@ Just unzip and run the executable.
 
 # Testbed
 
-## Byteorder
+## Byte Order
 
 To research the byte order structure I installed a single LDT `RM-88-N-Opto` and verified the received data. The setup commands are:
 
@@ -127,7 +127,7 @@ PIN     Data from HSI-88-USB
 
 # Setup 
 
-The runtime can be configured by json-based configuration file named `EsuEcosMiddleman.json`, it lays side-by-side to the executable within the build directory, e.g. `bin\Release\EsuEcosMiddleman.exe`.
+The runtime can be configured by Json-based configuration file named `EsuEcosMiddleman.json`, it lays side-by-side to the executable within the build directory, e.g. `bin\Release\EsuEcosMiddleman.exe`.
 
 - `hsi/devicePath` is required to address you attached `HSI-88-USB` device
 - `ecos/ip` is the ip address of your ECoS
@@ -151,6 +151,28 @@ The values are milliseconds, only real pin state changes after this walltime are
 }
 ``` 
 
+## Command Filtering
+
+During tests it has been shown that `Rocrail` handles few commands which are not really supported by the ECoS, e.g. `Devicemanager (id=20)` (see *Netzwerkspezifikation für das PC-Interface, Version 0.2, Juni 2011*).
+
+To minimize the dust for ECoS a filtering for commands has been implemented. Below `filter` (see configuration file `EsuEcosMiddleware.json`) object ids and object id ranges can be defined. The range is important because several commands with object ids targeting objects over `50000000` are addressed by Rocrail which do not really exist. The filtering supports the following math equations:
+
+```csharp
+/*
+ *    >=      greater or equal
+ *    <=      less or equal
+ *    ==      equal
+ *    <       less 
+ *    >       greater
+ */
+
+if (c0 == '>' && c1 == '=') return objId >= GetMathPartner(equT, 2);
+if (c0 == '<' && c1 == '=') return objId <= GetMathPartner(equT, 2);
+if (c0 == '=' && c1 == '=') return objId == GetMathPartner(equT, 2);
+if (c0 == '<'             ) return objId <  GetMathPartner(equT, 1);
+if (c0 == '>'             ) return objId >  GetMathPartner(equT, 1);
+```
+
 # Runtime / Demonstration
 
 The following screenshots show the software in action for a real model railway.
@@ -160,6 +182,12 @@ The following screenshots show the software in action for a real model railway.
 ![Startup2](Documentation/runtime/02_RocrailConnectsToLocalProxy.png "Establishing connection to local instance")
 
 ![Startup3](Documentation/runtime/03_ListenToS88.png "S88 Feedback")
+
+### WebUi Renderer
+
+In addition, this software provides a web based renderer to give you direct information which feedback pins are active or not. On startup a WebSocket server is started on port `ecos.port` (see configuration file `EsuEcosMiddleware.json`), sometimes it can be required to start the application as **Administrator**. When started open `Renderer\renderer.html` in your favorite browser and the result should look like the following screenshot.
+
+The view is split into three areas which are the representation of the `HSI-88-USB` channels, i.e. *left*, *middle*, and *right*.
 
 ![Startup4](Documentation/runtime/04_renderer.png "S88 Renderer")
 

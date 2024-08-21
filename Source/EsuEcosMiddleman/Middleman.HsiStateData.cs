@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) 2024 Dr. Christian Benjamin Ries
+// Licensed under the MIT License
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -15,7 +18,6 @@ internal partial class Middleman
         private readonly ICfgDebounce _cfgDebounce;
         public const int ObjectIdOffset = 100; // offset of "100" because ecos starts the object id with 100 for s88 modules
         public int ObjectId { get; } // ESU ECoS internal identifier
-        public int HsiDeviceId => ObjectId - ObjectIdOffset + 1;
         public const int NumberOfPins = 16;
         public const string ZeroHexValues = "0000";
         public const char Bin1 = '1';
