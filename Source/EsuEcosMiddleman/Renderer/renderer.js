@@ -76,7 +76,7 @@ function generateBaseView(jsonData) {
         }
     }
 
-    if (middleNo === 0) {
+    if (rightNo === 0) {
         const newPortDiv = getNewEmptyPortDiv("right");
         $('#s88right').append(newPortDiv);
     } else {
@@ -108,33 +108,42 @@ function updateView(jsonData) {
     }
     */
 
-    /// TODO handle port addressing
-    /// something like this
-    /// if portNo >= 0 && portNo <= event.info.left
-    ///    !!!update left
-    /// else if portNo > event.info.left && portNo <= (event.info.left + event.info.middle)
-    ///    !!!update middle
-    /// else if(portNo > (event.info.left + event.info.middle))
-    ///    !!!update right
-    /// endif
+	let evData = jsonData.event;
+	let evInfo = jsonData.info;
 
-    let portState = jsonData.event.state.binary;
-    for (let pinNo = 1; pinNo <= 16; ++pinNo) {
-        const idx = 16 - pinNo;
-        const id = "#left_port" + portNo + "_" + idx;
-        const pinState = parseInt(portState[idx]);
-        $(id).removeClass("pinDisabled");
-        $(id).removeClass("pinEnabled");
-        if (pinState === 1) {
-            $(id).addClass("pinEnabled");
-        } else {
-            $(id).addClass("pinDisabled");
-        }
-    }
+	let portIdAccessor = '';
+
+	if( portNo >= 0 && portNo <= evInfo.left ) {
+		portIdAccessor = "left";
+	} else if( portNo > evInfo.left && portNo <= (evInfo.left + evInfo.middle) ) { 
+		portIdAccessor = "middle";
+	} else if( portNo > (evInfo.left + evInfo.middle) ) {
+		portIdAccessor = "right";
+	}
+	
+	if(portIdAccessor.length > 0) {
+		
+		let portState = evData.state.binary;
+				
+		for (let pinNo = 1; pinNo <= 16; ++pinNo) {
+			const idx = 16 - pinNo;
+			const id = "#" + portIdAccessor + "_port" + portNo + "_" + pinNo;			
+			const pinState = parseInt(portState[idx]);
+			$(id).removeClass("pinDisabled");
+			$(id).removeClass("pinEnabled");
+			if (pinState === 1) {
+				$(id).addClass("pinEnabled");
+			} else {
+				$(id).addClass("pinDisabled");
+			}
+		}					
+		
+	}
+    
 }
 
 $(document).ready(function () {
-    let socket = new WebSocket("ws://localhost:15472/s88/");
+    let socket = new WebSocket("ws://192.168.178.129:15472/s88/");
     socket.onclose = function () { console.log("Closed!"); };
     socket.onopen = function () { console.log("Connected!"); };
     socket.onmessage = function (msg) {
