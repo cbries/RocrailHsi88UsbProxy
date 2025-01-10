@@ -183,6 +183,8 @@ namespace EsuEcosMiddleman
             _handler?.SendToRocrail(line);
         }
 
+        #region HSI-88-USB
+
         private void Hsi88DeviceOnOpened(object sender, EventArgs eventargs)
         {
             _cfgRuntime.Logger?.Log.Info("HSI-88-USB interface opened");
@@ -193,8 +195,6 @@ namespace EsuEcosMiddleman
             var evArgs = eventargs as DeviceInterfaceEventArgs;
             _cfgRuntime.Logger?.Log.Fatal($"HSI-88-USB failed: {evArgs?.Message ?? "reason unknown"}");
         }
-
-        #region HSI-88-USB
 
         private void SendCurrentHsi88States()
         {
