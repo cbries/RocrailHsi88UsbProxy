@@ -188,25 +188,47 @@ namespace EsuEcosMiddleman.Network
             }
         }
 
+        private readonly ConcurrentQueue<string> _messageQueue = new();
+        private readonly SemaphoreSlim _queueLock = new(1, 1);
+
         /// <summary>
-        /// All messages will be converted to base64 encoded strings.
-        /// If the message is plain text, it will be encoded on-demand.
+        /// Adds a message to the queue and ensures it gets sent sequentially.
+        /// This prevents message interleaving when multiple senders use the same stream.
         /// </summary>
-        /// <param name="msg">base64 encoded text, plain text will be encoded on-demand when forceBase64Encode is true</param>
-        /// <param name="forceBase64Encode">if true msg will be encoded to base64</param>
+        /// <param name="msg">The message to send.</param>
+        /// <param name="forceBase64Encode">If true, encodes the message in Base64 before sending.</param>
         public void SendMessage(string msg, bool forceBase64Encode = true)
         {
             if (string.IsNullOrEmpty(msg)) return;
+
             var encodedMsg = msg;
             if (!encodedMsg.IsBase64String() && forceBase64Encode)
                 encodedMsg = System.Text.Encoding.UTF8.ToBase64(msg);
 
-            foreach (var itClient in ConnectedClients)
-            {
-                if (itClient == null) continue;
-                if (!itClient.IsConnected) continue;
+            _messageQueue.Enqueue(encodedMsg);
+            _ = ProcessQueueAsync(); // Start processing the queue asynchronously
+        }
 
-                itClient.SendMessage(encodedMsg);
+        /// <summary>
+        /// Processes the message queue asynchronously to ensure messages are sent one at a time.
+        /// </summary>
+        private async Task ProcessQueueAsync()
+        {
+            await _queueLock.WaitAsync();
+            try
+            {
+                while (_messageQueue.TryDequeue(out var message))
+                {
+                    foreach (var itClient in ConnectedClients)
+                    {
+                        if (itClient == null || !itClient.IsConnected) continue;
+                        itClient.SendMessage(message);
+                    }
+                }
+            }
+            finally
+            {
+                _queueLock.Release();
             }
         }
 

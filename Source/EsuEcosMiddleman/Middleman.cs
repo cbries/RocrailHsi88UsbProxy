@@ -174,13 +174,32 @@ namespace EsuEcosMiddleman
             _tcpEcosClient.Send($"get(1, status){CommandLineTermination}");
         }
 
+        private readonly StringBuilder _messageBuffer = new();
+
         private void TcpEcosClientOnMessageReceived(object sender, MessageEventArgs eventargs)
         {
             var line = eventargs.Message?.Trim();
-
-            _cfgRuntime.Logger?.Log?.Debug($"ECoS [in] --> Rocrail [out]: {line}");
-
-            _handler?.SendToRocrail(line);
+            if (string.IsNullOrEmpty(line)) return;
+            _messageBuffer.Append(line).Append(CommandLineTermination);
+            if (line.StartsWith("<REPLY") || line.StartsWith("<EVENT"))
+            {
+                // Start of a new block
+                _messageBuffer.Clear();
+                _messageBuffer.Append(line).Append(CommandLineTermination);
+            }
+            else if (line.StartsWith("<END"))
+            {
+                // End of a block
+                var completeMessage = _messageBuffer.ToString();
+                _messageBuffer.Clear();
+                _cfgRuntime.Logger?.Log?.Debug($"ECoS [in] --> Rocrail [out]: {completeMessage.Trim()}");
+                _handler?.SendToRocrail(completeMessage);
+            }
+            else
+            {
+                if(line.StartsWith("<", StringComparison.OrdinalIgnoreCase))
+                    _cfgRuntime.Logger?.Log?.Debug($"UNKNOWN: {line.Trim()}");
+            }
         }
 
         #region HSI-88-USB
@@ -213,7 +232,7 @@ namespace EsuEcosMiddleman
 
         private void Hsi88DeviceOnDataReceived(object sender, DeviceInterfaceData data)
         {
-            _cfgRuntime.Logger?.Log.Debug($"HSI-88: {data.Data}");
+            //_cfgRuntime.Logger?.Log.Debug($"HSI-88: {data.Data}");
 
             if (!_versionShown && data.Data.StartsWith("V", StringComparison.OrdinalIgnoreCase))
             {
@@ -226,7 +245,7 @@ namespace EsuEcosMiddleman
 
             foreach (var it in data.States)
             {
-                _cfgRuntime.Logger?.Log.Debug($"{it.Key} => {it.Value}");
+                //_cfgRuntime.Logger?.Log.Debug($"{it.Key} => {it.Value}");
 
                 // ESU ECoS feedback device object ids starts at "100"
                 // HSI-88-USB sends "1"-based port ids => hsiDeviceId
@@ -236,10 +255,6 @@ namespace EsuEcosMiddleman
 
                 var hsiPort = _hsiStates[objId];
                 var r = hsiPort.Update(it.Value);
-
-#if DEBUG
-                if (r) ShowStates(hsiPort);
-#endif
 
                 if (r)
                 {
@@ -252,26 +267,6 @@ namespace EsuEcosMiddleman
                 }
             }
         }
-
-#if DEBUG
-        private void ShowStates(HsiStateData hsiPort)
-        {
-            if (hsiPort == null) return;
-            if (!_cfgRuntime.DebugConfiguration.Enabled) return;
-
-            foreach (var input in _cfgRuntime.DebugConfiguration.Inputs)
-            {
-                var portId = CfgDebug.GetPortNumber(input.Key);
-                if (portId == 0) continue;
-                if (portId != hsiPort.HsiDeviceId) continue;
-                foreach (var pin in input.Value)
-                    hsiPort.ShowStates(portId, pin, false, (msg) =>
-                    {
-                        _cfgRuntime.Logger.Log.Info($"{msg}");
-                    });
-            }
-        }
-#endif
 
         #endregion
 
