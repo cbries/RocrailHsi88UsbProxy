@@ -23,10 +23,14 @@ namespace EsuEcosMiddleman
             return string.Join<Exception>(Environment.NewLine, ex.GetInnerExceptions());
         }
 
-        public static string GetExceptionMessages(this Exception ex) =>
-            ex.Message
-            + Environment.NewLine
-            + string.Join(Environment.NewLine, ex.GetInnerExceptions());
+        public static string GetExceptionMessages(this Exception ex)
+        {
+            if (string.IsNullOrEmpty(ex?.Message)) return "Exception instance is null.";
+
+            return ex.Message
+                   + Environment.NewLine
+                   + string.Join(Environment.NewLine, ex.GetInnerExceptions());
+        }
 
         public static void ShowException(this Exception ex)
         {

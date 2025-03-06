@@ -286,6 +286,7 @@ namespace EsuEcosMiddleman
             {
                 var objId = command.ObjectId;
                 if (objId == -1) return;
+                if (objId == ObjectIdS88) return; // Do we need this in future?
 
                 if (command.Arguments.Count == 0)
                 {
@@ -300,21 +301,31 @@ namespace EsuEcosMiddleman
                 }
                 else
                 {
-                    var firstArgument = command.Arguments.First()?.Name;
-                    if (string.IsNullOrEmpty(firstArgument)) return;
-
-                    switch (firstArgument)
+                    if (command.Arguments.Count >= 2)
                     {
-                        /*
-                           get(100, state)
-                           get(101, state)
-                           get(102, state)
-                           get(103, state)
-                         */
-                        case "state":
-                            _handler.SendToRocrail(GetStateOfModule(objId));
-                            _handler.SendToWs(GetStateOfModule(objId, true));
-                            break;
+                        var firstArgument = command.Arguments.First()?.Name;
+                        var secondArgument = command.Arguments[1]?.Name;
+
+                        if (string.IsNullOrEmpty(firstArgument) && string.IsNullOrEmpty(secondArgument))
+                        {
+                            _cfgRuntime.Logger.Log?.Info($"Invalid command received: {command.NativeCommand}");
+
+                            return;
+                        }
+
+                        switch (secondArgument)
+                        {
+                            /*
+                               get(100, state)
+                               get(101, state)
+                               get(102, state)
+                               get(103, state)
+                             */
+                            case "state":
+                                _handler.SendToRocrail(GetStateOfModule(objId));
+                                _handler.SendToWs(GetStateOfModule(objId, true));
+                                break;
+                        }
                     }
                 }
             }
