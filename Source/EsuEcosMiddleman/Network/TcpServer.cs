@@ -12,6 +12,7 @@ using EsuEcosMiddleman.Utilities;
 namespace EsuEcosMiddleman.Network
 {
     public delegate void ClientConnected(object sender, ITcpClient client);
+    public delegate void ClientDisconnected(object sender, ITcpClient client);
     public delegate void ClientFailed(object sender, MessageEventArgs eventArgs);
     public delegate void MessageReceived(object sender, MessageEventArgs eventArgs);
     public delegate void SendFailed(object sender, MessageEventArgs eventArgs);
@@ -20,6 +21,7 @@ namespace EsuEcosMiddleman.Network
     {
         public event EventHandler Stopped;
         public event ClientConnected ClientConnected;
+        public event ClientDisconnected ClientDisconnected;
         public event ClientFailed ClientFailed;
         public event MessageReceived MessageReceived;
         public event SendFailed SendFailed;
@@ -176,6 +178,8 @@ namespace EsuEcosMiddleman.Network
                 {
                     var tcpClient = sender as ITcpClient;
                     if (tcpClient == null) return;
+
+                    ClientDisconnected?.Invoke(this, tcpClient);
 
                     ConnectedClients = new ConcurrentBag<ITcpClient>(ConnectedClients.Except(new[] { tcpClient }));
                 };

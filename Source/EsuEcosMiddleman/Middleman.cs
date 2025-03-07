@@ -4,12 +4,14 @@
 using EsuEcosMiddleman.Network;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EsuEcosMiddleman.ECoS;
 using EsuEcosMiddleman.HSI88USB;
 using System.Net.NetworkInformation;
+using System.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -87,6 +89,7 @@ namespace EsuEcosMiddleman
                 Logger = _cfgRuntime.Logger
             };
             _tcpServerInstance.ClientConnected += ServerInstanceOnClientConnected;
+            _tcpServerInstance.ClientDisconnected += TcpServerInstanceOnClientDisconnected;
             _tcpServerInstance.MessageReceived += TcpServerInstanceOnMessageReceived;
             _tcpServerInstance.ClientFailed += TcpServerInstanceOnClientFailed;
             _tcpServerInstance.Stopped += TcpServerInstanceOnStopped;
@@ -148,23 +151,17 @@ namespace EsuEcosMiddleman
         private async Task CheckReconnect()
         {
             var ecosAddr = $"{_cfgRuntime.CfgTargetEcos.TargetIp}:{_cfgRuntime.CfgTargetEcos.TargetPort}";
-
             while (!_isStopped)
             {
                 if (IsPingToEcosOk())
                 {
                     _cfgRuntime.Logger?.Log.Info($"Ping ok, try to connect to {ecosAddr}...");
-
                     break;
                 }
-
                 _cfgRuntime.Logger?.Log.Info($"Try to ping again in 5 seconds to {ecosAddr}...");
-
                 await Task.Delay(TimeSpan.FromSeconds(5));
             }
-
             _isStopped = false;
-
             _tcpEcosClient.Start();
         }
 
@@ -418,8 +415,15 @@ namespace EsuEcosMiddleman
             _cfgRuntime.Logger?.Log.Warn($"Server for handling Rocrail data stopped.");
         }
 
+        private void TcpServerInstanceOnClientDisconnected(object sender, ITcpClient client)
+        {
+            StopTaskForS88Updates(client);
+        }
+
         private void TcpServerInstanceOnClientFailed(object sender, MessageEventArgs eventargs)
         {
+            StopTaskForS88Updates(sender as TcpClient);
+
             _cfgRuntime.Logger?.Log.Fatal($"Client failed: {eventargs.Message} ({eventargs.Exception.GetExceptionMessages()})");
         }
 
@@ -427,9 +431,39 @@ namespace EsuEcosMiddleman
         {
             _cfgRuntime.Logger?.Log.Info($"Client connected: {client.Ip}");
 
-            SendCurrentHsi88States();
+            StartTaskForS88Updates(client);
         }
 
         #endregion
+
+        private readonly Dictionary<ITcpClient, CancellationTokenSource> _clientTasks = new();
+
+        private void StartTaskForS88Updates(ITcpClient client)
+        {
+            if (client == null) return;
+
+            var cts = new CancellationTokenSource();
+            _clientTasks[client] = cts;
+
+            Task.Run(async () =>
+            {
+                while (!cts.Token.IsCancellationRequested && client.IsConnected)
+                {
+                    SendCurrentHsi88States();
+                    await Task.Delay(2500, cts.Token);
+                }
+            }, cts.Token);
+        }
+
+        private void StopTaskForS88Updates(ITcpClient client)
+        {
+            if (client == null) return;
+
+            if (_clientTasks.TryGetValue(client, out var cts))
+            {
+                cts.Cancel();
+                _clientTasks.Remove(client);
+            }
+        }
     }
 }
