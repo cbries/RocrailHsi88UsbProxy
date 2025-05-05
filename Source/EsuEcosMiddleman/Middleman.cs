@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2024 Dr. Christian Benjamin Ries
+// Copyright (c) 2024 Dr. Christian Benjamin Ries
 // Licensed under the MIT License
 
 using EsuEcosMiddleman.Network;
@@ -331,18 +331,20 @@ namespace EsuEcosMiddleman
                 var objId = command.ObjectId;
                 if (objId == -1) return;
 
-                var firstArgument = command.Arguments.First()?.Name;
-                if (string.IsNullOrEmpty(firstArgument)) return;
-
-                if (firstArgument.Equals("ports"))
+                foreach (var arg in command.Arguments)
                 {
-                    var cfgHsi88 = _cfgRuntime.CfgHsi88;
-                    var totalNoModules = cfgHsi88.NumberLeft + cfgHsi88.NumberMiddle + cfgHsi88.NumberRight;
-                    var reply = $"<REPLY queryObjects(26,ports)>{CommandLineTermination}";
-                    for (var i = 0; i < totalNoModules; ++i)
-                        reply += $"{100 + i} ports[16]{CommandLineTermination}";
-                    reply += $"<END 0 (OK)>{CommandLineTermination}";
-                    _handler.SendToRocrail(reply);
+                    if (string.IsNullOrEmpty(arg?.Name)) continue;
+
+                    if (arg.Name.Equals("ports", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var cfgHsi88 = _cfgRuntime.CfgHsi88;
+                        var totalNoModules = cfgHsi88.NumberLeft + cfgHsi88.NumberMiddle + cfgHsi88.NumberRight;
+                        var reply = $"<REPLY queryObjects(26,ports)>{CommandLineTermination}";
+                        for (var i = 0; i < totalNoModules; ++i)
+                            reply += $"{100 + i} ports[16]{CommandLineTermination}";
+                        reply += $"<END 0 (OK)>{CommandLineTermination}";
+                        _handler.SendToRocrail(reply);
+                    }
                 }
             }
         }
@@ -390,6 +392,23 @@ namespace EsuEcosMiddleman
             var receivedCmd = CommandFactory.Create(eventargs.Message);
             if (receivedCmd == null) return;
             var objId = receivedCmd.ObjectId;
+
+            //
+            // We have to support the ESU ECoSDetector
+            // Therefor, relevant commands must be 
+            // forwarded to the ECoS, but can be 
+            // locally handled as well, i.e. two world support.
+            //
+            if (objId == ObjectIdS88)
+            {
+                _cfgRuntime.Logger?.Log.Debug($"Ecos [out]: {eventargs.Message}");
+
+                _handler.SendToEcos(eventargs.Message);
+            }
+            
+            // 
+            // The middleware for the HSI-USB-S88
+            //
             if (objId == ObjectIdS88 || objId is >= 100 and <= 131)
             {
                 DoS88Handling(receivedCmd);

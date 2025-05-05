@@ -5,14 +5,17 @@
 
 # Motivation
 
-I used a ESU ECoS 50210 and several LDT's S88 feedback devices. After a while the ECoS' feedback device does not recognizes any input anymore, the LDT's still worked after adding an `HSI-88-N`. But then I realized that `Rocrail` does not support the `HSI-88-USB`, only the old fashioned `HSI-88` with serial connection (no USB!).
+I used a ESU ECoS 50210 and several LDT's S88 feedback devices. In addition, with an update in May 2025, this middleware supports `ESU ECoSDetectors` as well.
+After a while the ECoS' feedback device does not recognizes any input anymore, the LDT's still worked after adding an `HSI-88-N`.
+But then I realized that `Rocrail` does not support the `HSI-88-USB`, only the old fashioned `HSI-88` with serial connection (no USB!).
 
 My used hardware & software:
 
 - `RM-88-N`, 16-fold Standard-Feedback Module, https://www.ldt-infocenter.com/dokuwiki/doku.php?id=de:rm-88-n
 - `HSI-88-USB`, High Speed Interface for the s88-Feedbackbus!, https://www.ldt-infocenter.com/dokuwiki/doku.php?id=de:hsi-88-usb
+- `ESU ECoSDetector`, ECoSDetector feedback module, 16 digital input, https://www.esu.eu/products/digitale-steuerung/ecosdetector/ecosdetector/
 - `ESU ECoS 50210`, https://www.esu.eu/en/products/digital-control/ecos-50210-dcc-system/what-ecos-can-do/
-- so far I used: `Rocrail`, https://wiki.rocrail.net/doku.php?id=start
+- - so far I used: `Rocrail`, https://wiki.rocrail.net/doku.php?id=start
 
 # Idea
 
@@ -157,7 +160,7 @@ The values are milliseconds, only real pin state changes after this walltime are
 
 ## Command Filtering
 
-During tests it has been shown that `Rocrail` handles few commands which are not really supported by the ECoS, e.g. `Devicemanager (id=20)` (see *Netzwerkspezifikation für das PC-Interface, Version 0.2, Juni 2011*).
+During tests it has been shown that `Rocrail` handles few commands which are not really supported by the ECoS, e.g. `Devicemanager (id=20)` (see *Netzwerkspezifikation fÃ¼r das PC-Interface, Version 0.2, Juni 2011*).
 
 To minimize the dust for ECoS a filtering for commands has been implemented. Below `filter` (see configuration file `EsuEcosMiddleware.json`) object ids and object id ranges can be defined. The range is important because several commands with object ids targeting objects over `50000000` are addressed by Rocrail which do not really exist. The filtering supports the following math equations:
 
