@@ -11,6 +11,7 @@ But then I realized that `Rocrail` does not support the `HSI-88-USB`, only the o
 
 My used hardware & software:
 
+- `Windows PC`, running `EsuEcosMiddleman`, with the `HSI-88-USB` attached as `\\.\HsiUsb1`
 - `RM-88-N`, 16-fold Standard-Feedback Module, https://www.ldt-infocenter.com/dokuwiki/doku.php?id=de:rm-88-n
 - `HSI-88-USB`, High Speed Interface for the s88-Feedbackbus!, https://www.ldt-infocenter.com/dokuwiki/doku.php?id=de:hsi-88-usb
 - `ESU ECoSDetector`, ECoSDetector feedback module, 16 digital input, https://www.esu.eu/products/digitale-steuerung/ecosdetector/ecosdetector/
@@ -60,7 +61,7 @@ get(103, state)
 
 Just connect with `telnet` (i.e. `$ telnet 192.168.178.119 15471`) or an other terminal network tool and enter the mentioned commands. 
 
-`EsuEcosMiddleman` (so-called `ManInTheMiddle (MITM)`) is started locally, starts a local server to which `Rocrail` connects like normal. MITM splits the commands into two channels:
+`EsuEcosMiddleman` (so-called `ManInTheMiddle (MITM)`) runs on the Windows PC to which the `HSI-88-USB` is attached locally (for example as `\\.\HsiUsb1`). `Rocrail` may run on the same machine or on a different one. The middleware starts a local server to which `Rocrail` connects like normal and intercepts the traffic between `Rocrail` and the `ECoS`. MITM then splits the commands into two channels:
 
 a) one for the S88 data
 	
@@ -68,7 +69,7 @@ b) the second for all other data
 	
 It will work like a normal connection, as it would established when used directly. But the S88-data is fetched from the `HSI-88-USB` device and weaved into the data stream.
 
-The following figure provides a bird-view of the architecture.
+The following figure provides a bird-view of the architecture. The local proxy and the attached `HSI-88-USB` are intended to be located on the same Windows PC. `Rocrail` may run on that machine as well, but it can also run on a different computer.
 
 ![Architecture Overview](Documentation/Architecture01.png "Architecture Overview")
 
