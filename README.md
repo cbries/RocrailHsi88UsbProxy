@@ -199,9 +199,22 @@ The view is split into three areas which are the representation of the `HSI-88-U
 
 ![Startup4](Documentation/runtime/04_renderer.png "S88 Renderer")
 
-# Action Extension for DCC Accessory Triggering
+# MQTT Action Extension for DCC Accessory Triggering
 
-The project can be extended with a small, optional action layer without introducing a second ECoS client or a second Rocrail listener. The extension installs at the central Rocrail command processing point inside `Middleman` and acts on already-parsed ECoS commands before the standard forward-to-ECoS logic continues.
+This project now includes a modular extension mechanism that can react to existing Rocrail/ECoS accessory commands without creating a second proxy, a second ECoS connection, or a second Rocrail listener. The extension sits in the central command-processing path and can fire an action as soon as a matching command has been parsed.
+
+## What this feature does
+
+The extension is deliberately additive:
+
+- It keeps the normal proxy flow intact.
+- It intercepts already-parsed commands at the central `Middleman` processing point.
+- It normalizes the command into a trigger such as address `201`, port `1`, state `on`.
+- It compares that trigger against configured `mappings`.
+- If a mapping matches, it executes the configured action asynchronously.
+- The proxy continues forwarding the command to the ECoS as usual.
+
+This makes the feature safe for existing installations because it does not replace or duplicate the original communication path.
 
 ## Architecture
 
@@ -213,23 +226,23 @@ RocrailHsi88UsbProxy / EsuEcosMiddleman
   |
   +-- existing parsing and forwarding
   |
-  +-- Action Dispatcher
+  +-- Action Dispatcher (generic trigger -> action)
        |
        +-- MQTT action
        +-- later: HTTP / webhook / script / internal actions
 ```
 
-The action dispatcher uses the same, existing command model and simply normalizes a command such as `set(201, state[1])` into a trigger object with:
+The dispatcher works with the same command model already used by the proxy. A command like `set(201, state[1])` is normalized to a trigger object with:
 
 - Address: `201`
 - Port: `1`
 - State: `on`
 
-This is then mapped to a configured action, for example an MQTT publish to a Shelly RGBW2 controller.
+This trigger is then matched against the configured mappings. A matching mapping can publish an MQTT payload to a Shelly or any other MQTT-capable device.
 
-## Activation
+## Activation in the runtime configuration
 
-The action extension is optional and is controlled through the existing JSON runtime file `EsuEcosMiddleman.json`:
+The extension is enabled from the normal configuration file `EsuEcosMiddleman.json`:
 
 ```json
 "extensions": {
@@ -237,7 +250,7 @@ The action extension is optional and is controlled through the existing JSON run
     "enabled": true,
     "mqtt": {
       "enabled": true,
-      "host": "192.168.1.10",
+      "host": "192.168.178.29",
       "port": 1883,
       "clientId": "EsuEcosMiddleman",
       "username": "",
@@ -248,11 +261,11 @@ The action extension is optional and is controlled through the existing JSON run
 }
 ```
 
-When `enabled` is set to `false`, no action dispatch is performed and the standard proxy flow remains unchanged.
+When `extensions.actions.enabled` is `false`, no action dispatch is performed and the original proxy behavior is unchanged. The MQTT sub-configuration can also be switched off independently if necessary.
 
 ## Example: Shelly RGBW2 lighting
 
-A typical lighting setup uses the reserved DCC accessory addresses `201` through `206`:
+A typical lighting setup uses helper accessory addresses such as `201` through `206`:
 
 - `201` → Day
 - `202` → Evening
@@ -261,7 +274,7 @@ A typical lighting setup uses the reserved DCC accessory addresses `201` through
 - `205` → Sunrise
 - `206` → Sunset
 
-Example mapping:
+A real configuration looks like this:
 
 ```json
 {
@@ -286,9 +299,9 @@ Example mapping:
 }
 ```
 
-The payload is fully configurable and can be changed without modifying the proxy logic itself.
+The payload is completely data-driven and can be adjusted to match the actual target device without changing the proxy code itself. A similar mapping can be created for each accessory address or any other trigger pattern supported by the action dispatch.
 
-## Rocrail Example
+## Rocrail and ECoS example
 
 A Rocrail accessory or DCC command such as:
 
@@ -298,19 +311,20 @@ Protocol: DCC
 Address: 201
 ```
 
-is parsed by the existing command factory and then normalized to a trigger before being matched against configured action mappings. If a mapping matches, the MQTT action is started asynchronously; the normal proxy forwarding to the ECoS continues immediately afterwards.
+is parsed by the existing command factory and normalized before being matched against the configured action mappings. If a mapping matches, the MQTT publish is started asynchronously and the usual forwarding to the ECoS continues immediately.
 
 ## Notes
 
-- The existing ECoS communication flow is not duplicated.
-- No second TCP listener is created for actions.
-- MQTT errors are caught and logged; they do not crash the proxy.
-- The action layer is intentionally additive and only enabled when configured.
+- The normal ECoS communication flow is not duplicated.
+- No second TCP listener is required for the extension.
+- MQTT errors are logged and do not crash the proxy.
+- The extension is intentionally generic and can later be extended with additional action types beyond MQTT.
+- The system remains backward compatible with the original `RocrailHsi88UsbProxy` behavior when `extensions.actions.enabled` is off.
 
 ## Troubleshooting
 
-- If a command never triggers an action, check the command object id and the trigger address in the configuration.
-- If no MQTT publish occurs, verify `extensions.actions.enabled` and `extensions.actions.mqtt.enabled`.
+- If no action fires, verify the trigger address and the command object state in the configuration.
+- If MQTT does not publish, validate `extensions.actions.enabled` and `extensions.actions.mqtt.enabled`.
 - If the broker is unreachable, the proxy still continues to function; only the action is skipped.
-- Use log messages such as `Action mapping matched` and `MQTT publish` for validation.
+- Use the log output to check for success messages such as `Action mapping matched` and `MQTT publish`.
 
