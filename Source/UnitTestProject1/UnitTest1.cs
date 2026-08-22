@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
 using System.Threading.Tasks;
+using EsuEcosMiddleman;
 using EsuEcosMiddleman.ECoS;
 using EsuEcosMiddleman.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -62,6 +65,21 @@ namespace UnitTestProject1
             dispatcher.DispatchAsync(cmd, "set(201, state[1])").GetAwaiter().GetResult();
 
             Assert.IsNull(action.ExecutedContext);
+        }
+
+        [TestMethod]
+        public void HsiStateData_TracksStateTransitionsAndBinaryRoundtrip()
+        {
+            var type = typeof(CfgDebounce).Assembly.GetType("EsuEcosMiddleman.Middleman+HsiStateData", throwOnError: true);
+            Assert.IsNotNull(type);
+
+            var toBinary = type.GetMethod("ToBinary", BindingFlags.Static | BindingFlags.Public);
+            var toHex = type.GetMethod("ToHex", BindingFlags.Static | BindingFlags.Public);
+
+            Assert.IsNotNull(toBinary);
+            Assert.IsNotNull(toHex);
+            Assert.AreEqual("0000000000000001", toBinary.Invoke(null, new object[] { "0001" }));
+            Assert.AreEqual("0001", toHex.Invoke(null, new object[] { "0000000000000001" }));
         }
 
         private class RecordingAction : IAction

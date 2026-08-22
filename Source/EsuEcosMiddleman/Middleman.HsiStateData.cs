@@ -34,12 +34,14 @@ internal partial class Middleman
         public string NativeBinaryData => ToBinary(NativeHexData);
 
         private readonly Dictionary<int, DateTime> _states = new();
+        private ushort _nativeStateMask;
 
         public HsiStateData(int objectId, ICfgDebounce cfgDebounce)
         {
             ObjectId = objectId;
 
             _cfgDebounce = cfgDebounce;
+            _nativeStateMask = 0;
 
             for (var i = 0; i < NumberOfPins; ++i)
                 _states.Add(i, DateTime.MinValue);
@@ -58,59 +60,54 @@ internal partial class Middleman
         {
             if (string.IsNullOrEmpty(dataset)) return false;
 
-            var recentBinary = ToBinary(NativeHexData);
-            var updateBinary = ToBinary(dataset);
-
-            var sbin = new[]
-            {
-                Bin0, Bin0, Bin0, Bin0,
-                Bin0, Bin0, Bin0, Bin0,
-                Bin0, Bin0, Bin0, Bin0,
-                Bin0, Bin0, Bin0, Bin0
-            };
-
+            var updateMask = ParseHexMask(dataset);
+            var workingMask = _nativeStateMask;
+            var now = DateTime.Now;
             var changeCounter = 0;
 
             for (var i = 0; i < NumberOfPins; ++i)
             {
-                sbin[i] = recentBinary[i];
+                var bitIndex = NumberOfPins - 1 - i;
+                var cOld = ((workingMask >> bitIndex) & 1) == 1;
+                var cNew = ((updateMask >> bitIndex) & 1) == 1;
 
-                var cOld = recentBinary[i];
-                var cNew = updateBinary[i];
                 if (cOld == cNew)
                 {
-                    _states[i] = DateTime.Now;
-
+                    _states[i] = now;
                     continue;
                 }
 
                 var stateTime = _states[i];
-                var deltaMs = (DateTime.Now - stateTime).TotalMilliseconds;
+                var deltaMs = (now - stateTime).TotalMilliseconds;
 
                 var bounceOn = _cfgDebounce.On;
                 var bounceOff = _cfgDebounce.Off;
 
-                if (cOld == Bin0) // was off, must wait bounceOff before update
+                if (!cOld) // was off, must wait bounceOff before update
                 {
                     if (deltaMs > bounceOn)
                     {
-                        sbin[i] = Bin1;
-
+                        workingMask |= (ushort)(1 << bitIndex);
+                        _states[i] = now;
                         ++changeCounter;
                     }
                 }
-                else if (cOld == Bin1) // was on, must wait bounceOn beforeUpdate
+                else // was on, must wait bounceOn beforeUpdate
                 {
                     if (deltaMs > bounceOff)
                     {
-                        sbin[i] = Bin0;
-
+                        workingMask &= (ushort)~(1 << bitIndex);
+                        _states[i] = now;
                         ++changeCounter;
                     }
                 }
             }
 
-            NativeHexData = ToHex(new string(sbin));
+            if (changeCounter > 0)
+            {
+                _nativeStateMask = workingMask;
+                NativeHexData = ToHexMask(workingMask);
+            }
 
             return changeCounter > 0;
         }
@@ -149,12 +146,24 @@ internal partial class Middleman
         /// </summary>
         /// <param name="hexValue"></param>
         /// <returns></returns>
+        private static ushort ParseHexMask(string hexValue)
+        {
+            if (string.IsNullOrWhiteSpace(hexValue)) return 0;
+            var normalized = hexValue.Trim();
+            while (normalized.Length < 4)
+                normalized = "0" + normalized;
+            normalized = normalized.Length > 4 ? normalized.Substring(normalized.Length - 4) : normalized;
+            return Convert.ToUInt16(normalized, 16);
+        }
+
+        private static string ToHexMask(ushort mask)
+        {
+            return mask.ToString("X4");
+        }
+
         public static string ToBinary(string hexValue)
         {
-            return string.Join(string.Empty,
-                hexValue.Select(
-                    c => Convert.ToString(Convert.ToInt32(c.ToString(), 16), 2).PadLeft(4, '0')
-                ));
+            return Convert.ToString(ParseHexMask(hexValue), 2).PadLeft(NumberOfPins, Bin0);
         }
 
         /// <summary>
@@ -166,12 +175,11 @@ internal partial class Middleman
         /// <returns></returns>
         public static string ToHex(string binaryValue)
         {
-            var hex = string.Join(string.Empty,
-                Enumerable.Range(0, binaryValue.Length / 8)
-                    .Select(i => Convert.ToByte(binaryValue.Substring(i * 8, 8), 2).ToString("X2")));
-            if (hex.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-                hex = hex.Substring(2).Trim();
-            return hex;
+            var normalized = binaryValue ?? string.Empty;
+            while (normalized.Length < NumberOfPins)
+                normalized = Bin0 + normalized;
+            normalized = normalized.Length > NumberOfPins ? normalized.Substring(normalized.Length - NumberOfPins) : normalized;
+            return Convert.ToUInt16(normalized, 2).ToString("X4");
         }
     }
 }
