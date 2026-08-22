@@ -199,3 +199,118 @@ The view is split into three areas which are the representation of the `HSI-88-U
 
 ![Startup4](Documentation/runtime/04_renderer.png "S88 Renderer")
 
+# Action Extension for DCC Accessory Triggering
+
+The project can be extended with a small, optional action layer without introducing a second ECoS client or a second Rocrail listener. The extension installs at the central Rocrail command processing point inside `Middleman` and acts on already-parsed ECoS commands before the standard forward-to-ECoS logic continues.
+
+## Architecture
+
+```text
+Rocrail
+  |
+  v
+RocrailHsi88UsbProxy / EsuEcosMiddleman
+  |
+  +-- existing parsing and forwarding
+  |
+  +-- Action Dispatcher
+       |
+       +-- MQTT action
+       +-- later: HTTP / webhook / script / internal actions
+```
+
+The action dispatcher uses the same, existing command model and simply normalizes a command such as `set(201, state[1])` into a trigger object with:
+
+- Address: `201`
+- Port: `1`
+- State: `on`
+
+This is then mapped to a configured action, for example an MQTT publish to a Shelly RGBW2 controller.
+
+## Activation
+
+The action extension is optional and is controlled through the existing JSON runtime file `EsuEcosMiddleman.json`:
+
+```json
+"extensions": {
+  "actions": {
+    "enabled": true,
+    "mqtt": {
+      "enabled": true,
+      "host": "192.168.1.10",
+      "port": 1883,
+      "clientId": "EsuEcosMiddleman",
+      "username": "",
+      "password": ""
+    },
+    "mappings": []
+  }
+}
+```
+
+When `enabled` is set to `false`, no action dispatch is performed and the standard proxy flow remains unchanged.
+
+## Example: Shelly RGBW2 lighting
+
+A typical lighting setup uses the reserved DCC accessory addresses `201` through `206`:
+
+- `201` → Day
+- `202` → Evening
+- `203` → Night
+- `204` → Lights off
+- `205` → Sunrise
+- `206` → Sunset
+
+Example mapping:
+
+```json
+{
+  "name": "DayLight",
+  "trigger": {
+    "address": 201,
+    "state": "on"
+  },
+  "action": {
+    "type": "mqtt",
+    "topic": "shellies/shellyrgbw2-ABCDEF/color/0/set",
+    "payload": {
+      "turn": "on",
+      "red": 220,
+      "green": 235,
+      "blue": 255,
+      "white": 255,
+      "gain": 90,
+      "transition": 5000
+    }
+  }
+}
+```
+
+The payload is fully configurable and can be changed without modifying the proxy logic itself.
+
+## Rocrail Example
+
+A Rocrail accessory or DCC command such as:
+
+```text
+Rocrail Output "Day"
+Protocol: DCC
+Address: 201
+```
+
+is parsed by the existing command factory and then normalized to a trigger before being matched against configured action mappings. If a mapping matches, the MQTT action is started asynchronously; the normal proxy forwarding to the ECoS continues immediately afterwards.
+
+## Notes
+
+- The existing ECoS communication flow is not duplicated.
+- No second TCP listener is created for actions.
+- MQTT errors are caught and logged; they do not crash the proxy.
+- The action layer is intentionally additive and only enabled when configured.
+
+## Troubleshooting
+
+- If a command never triggers an action, check the command object id and the trigger address in the configuration.
+- If no MQTT publish occurs, verify `extensions.actions.enabled` and `extensions.actions.mqtt.enabled`.
+- If the broker is unreachable, the proxy still continues to function; only the action is skipped.
+- Use log messages such as `Action mapping matched` and `MQTT publish` for validation.
+

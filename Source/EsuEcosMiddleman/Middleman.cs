@@ -12,6 +12,7 @@ using EsuEcosMiddleman.ECoS;
 using EsuEcosMiddleman.HSI88USB;
 using System.Net.NetworkInformation;
 using System.Threading;
+using EsuEcosMiddleman.Extensions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -33,6 +34,7 @@ namespace EsuEcosMiddleman
         private ConnectorFaster _tcpEcosClient;
         private DeviceInterface _hsi88Device;
         private MiddlemanHandler _handler;
+        private IActionDispatcher _actionDispatcher;
 
         private bool IsSimulation => _cfgRuntime.RuntimeConfiguration.IsSimulation;
 
@@ -119,6 +121,7 @@ namespace EsuEcosMiddleman
                 await _hsi88Device.RunAsync();
 
             _handler = new MiddlemanHandler(_tcpServerInstance, _tcpEcosClient, _tcpWsServerInstance);
+            _actionDispatcher = ActionDispatcherFactory.Create(_cfgRuntime, _cfgRuntime.Logger);
         }
 
         private void TcpEcosClientOnFailed(object sender, MessageEventArgs eventargs)
@@ -422,6 +425,21 @@ namespace EsuEcosMiddleman
                     _cfgRuntime.Logger?.Log.Debug($"Filtered message: {eventargs.Message}");
                     return;
                 }
+            }
+
+            if (_actionDispatcher != null)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _actionDispatcher.DispatchAsync(receivedCmd, eventargs.Message).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _cfgRuntime.Logger?.Log?.Warn($"Action dispatcher failed: {ex.Message}");
+                    }
+                });
             }
 
             _cfgRuntime.Logger?.Log.Debug($"Ecos [out]: {eventargs.Message}");

@@ -85,6 +85,49 @@ namespace EsuEcosMiddleman
         [JsonProperty("isSimulation")] public bool IsSimulation { get; set; } = false;
     }
 
+    public class CfgMqtt
+    {
+        [JsonProperty("enabled")] public bool Enabled { get; set; } = true;
+        [JsonProperty("host")] public string Host { get; set; } = "localhost";
+        [JsonProperty("port")] public int Port { get; set; } = 1883;
+        [JsonProperty("clientId")] public string ClientId { get; set; } = "EsuEcosMiddleman";
+        [JsonProperty("username")] public string Username { get; set; } = string.Empty;
+        [JsonProperty("password")] public string Password { get; set; } = string.Empty;
+    }
+
+    public class CfgActionTrigger
+    {
+        [JsonProperty("address")] public int Address { get; set; } = -1;
+        [JsonProperty("port")] public int? Port { get; set; }
+        [JsonProperty("state")] public string State { get; set; }
+    }
+
+    public class CfgActionDefinition
+    {
+        [JsonProperty("type")] public string Type { get; set; }
+        [JsonProperty("topic")] public string Topic { get; set; }
+        [JsonProperty("payload")] public object Payload { get; set; }
+    }
+
+    public class CfgActionMapping
+    {
+        [JsonProperty("name")] public string Name { get; set; }
+        [JsonProperty("trigger")] public CfgActionTrigger Trigger { get; set; } = new CfgActionTrigger();
+        [JsonProperty("action")] public CfgActionDefinition Action { get; set; } = new CfgActionDefinition();
+    }
+
+    public class CfgActions
+    {
+        [JsonProperty("enabled")] public bool Enabled { get; set; } = true;
+        [JsonProperty("mqtt")] public CfgMqtt Mqtt { get; set; } = new CfgMqtt();
+        [JsonProperty("mappings")] public List<CfgActionMapping> Mappings { get; set; } = new List<CfgActionMapping>();
+    }
+
+    public class CfgExtensions
+    {
+        [JsonProperty("actions")] public CfgActions Actions { get; set; } = new CfgActions();
+    }
+
     internal interface ICfgRuntime
     {
         ILogger Logger { get; set; }
@@ -95,6 +138,7 @@ namespace EsuEcosMiddleman
         IRuntimeConfiguration RuntimeConfiguration { get; set; }
         ICfgDebug DebugConfiguration { get; set; }
         ICfgFilter Filter { get; set; }
+        CfgExtensions Extensions { get; set; }
     }
 
     internal class CfgRuntime : ICfgRuntime
@@ -109,6 +153,7 @@ namespace EsuEcosMiddleman
         [JsonProperty("runtime")] public IRuntimeConfiguration RuntimeConfiguration { get; set; } = new RuntimeConfiguration();
         [JsonProperty("debug")] public ICfgDebug DebugConfiguration { get; set; } = new CfgDebug();
         [JsonProperty("filter")] public ICfgFilter Filter { get; set; } = new CfgFilter();
+        [JsonProperty("extensions")] public CfgExtensions Extensions { get; set; } = new CfgExtensions();
     }
 
     internal interface ICfgFilter
