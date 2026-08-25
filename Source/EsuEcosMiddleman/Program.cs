@@ -59,6 +59,32 @@ namespace EsuEcosMiddleman
             var mqttCfg = Cfg?.Extensions?.Actions?.Mqtt;
             loggerInstance.Log?.Info($"MQTT status: enabled={mqttCfg?.Enabled ?? false}, host={mqttCfg?.Host ?? "<n/a>"}, port={mqttCfg?.Port ?? -1}, clientId={mqttCfg?.ClientId ?? "<n/a>"}");
 
+            var accessoryIds = (Cfg?.Extensions?.Actions?.Mappings ?? new System.Collections.Generic.List<CfgActionMapping>())
+                .Where(m => m?.Trigger != null && m.Trigger.Address > 0)
+                .Select(m => m.Trigger.Address)
+                .Distinct()
+                .OrderBy(id => id)
+                .ToList();
+
+            if (accessoryIds.Count > 0)
+            {
+                var accessoryViewText = new StringBuilder();
+                accessoryViewText.AppendLine("Configured accessory views:");
+                foreach (var id in accessoryIds)
+                {
+                    accessoryViewText.AppendLine($"  - {id}: objectclass[accessory], view[objectclass,view,listview,control,state], state[0]");
+                }
+
+                var message = accessoryViewText.ToString().TrimEnd();
+                Console.WriteLine(message);
+                loggerInstance.Log?.Info(message);
+            }
+            else
+            {
+                Console.WriteLine("Configured accessory views: none");
+                loggerInstance.Log?.Info("Configured accessory views: none");
+            }
+
             var middleman = Middleman.Instance(Cfg);
             await middleman.RunAsync();
 
