@@ -1,0 +1,134 @@
+{
+	"runtime": {
+		"isSimulation": false
+	},
+	"server": {
+		"bindingIp": "0.0.0.0",
+		"listenPort": 15471
+	},
+	"ecos": {
+		"ip": "192.168.178.119",
+		"port": 15471
+	},
+	"hsi": {
+		"left": 5,
+		"middle": 1,
+		"right": 0,
+		"devicePath": "\\\\.\\HsiUsb1"
+	},
+	"debounce": {
+		"checkIntervalMs": 25,
+		"onMs": 25,
+		"offMs": 1000
+	},
+	"debug": {
+		"__doc": "In general, the number of ports is related to `hsi::left + hsi::middle + hsi::right` and should be the same count.",
+		"enabled": false,
+		"inputs": {
+			"port1": [],
+			"port2": [],
+			"port3": [],
+			"port4": [],
+			"port5": []
+		}
+	},
+	"filter": {
+		"enabled": false,
+		"objectIdsInfo": [
+			"Basisobjekt Devicemanager (id=20) (in Planung)"
+		],
+		"objectIds": [
+			20
+		],
+		"objectIdRanges": [
+			"> 50000000"
+		]
+	},
+	"extensions": {
+		"actions": {
+			"enabled": true,
+			"mqtt": {
+				"enabled": true,
+				"host": "192.168.178.29",
+				"port": 1883,
+				"clientId": "EsuEcosMiddleman",
+				"username": "",
+				"password": ""
+			},
+			"mappings": [
+				{
+					"name": "DayLight",
+					"trigger": {
+						"address": 20051,
+						"state": "on"
+					},
+					"action": {
+						"type": "mqtt",
+						"topic": "shelly-sky/command/rgbw:0",
+						"payload": "set,true,90,220,235,255,255,5"
+					}
+				},
+				{
+					"name": "EveningLight",
+					"trigger": {
+						"address": 20052,
+						"state": "on"
+					},
+					"action": {
+						"type": "mqtt",
+						"topic": "shelly-sky/command/rgbw:0",
+						"payload": "set,true,65,255,120,30,120,5"
+					}
+				},
+				{
+					"name": "NightLight",
+					"trigger": {
+						"address": 20053,
+						"state": "on"
+					},
+					"action": {
+						"type": "mqtt",
+						"topic": "shelly-sky/command/rgbw:0",
+						"payload": "set,true,25,10,20,100,0,5"
+					}
+				},
+				{
+					"name": "LightsOff",
+					"trigger": {
+						"address": 20054,
+						"state": "on"
+					},
+					"action": {
+						"type": "mqtt",
+						"topic": "shelly-sky/command/rgbw:0",
+						"payload": "set,false"
+					}
+				},
+				{
+					"name": "Sunrise",
+					"trigger": {
+						"address": 20055,
+						"state": "on"
+					},
+					"action": {
+						"type": "mqtt",
+						"topic": "shelly-sky/command/rgbw:0",
+						"payload": "set,true,40,255,128,64,160,8"
+					}
+				},
+				{
+					"name": "Sunset",
+					"trigger": {
+						"address": 20056,
+						"state": "on"
+					},
+					"action": {
+						"type": "mqtt",
+						"topic": "shelly-sky/command/rgbw:0",
+						"payload": "set,true,70,255,80,20,80,7"
+					}
+				}
+			]
+		}
+	}
+}
