@@ -122,6 +122,23 @@ namespace EsuEcosMiddleman
 
             _handler = new MiddlemanHandler(_tcpServerInstance, _tcpEcosClient, _tcpWsServerInstance);
             _actionDispatcher = ActionDispatcherFactory.Create(_cfgRuntime, _cfgRuntime.Logger);
+            RegisterConfiguredAccessoryViews();
+        }
+
+        private void RegisterConfiguredAccessoryViews()
+        {
+            if (_handler == null || _cfgRuntime?.Extensions?.Actions?.Mappings == null)
+                return;
+
+            foreach (var id in _cfgRuntime.Extensions.Actions.Mappings
+                         .Where(m => m?.Trigger != null && m.Trigger.Address > 0)
+                         .Select(m => m.Trigger.Address)
+                         .Distinct()
+                         .OrderBy(id => id))
+            {
+                _handler.SendToEcos($"request({id}, view){CommandLineTermination}");
+                _handler.SendToRocrail(BuildAccessoryViewReply(id));
+            }
         }
 
         private void TcpEcosClientOnFailed(object sender, MessageEventArgs eventargs)
