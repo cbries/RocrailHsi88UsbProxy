@@ -63,7 +63,7 @@
 				{
 					"name": "DayLight",
 					"trigger": {
-						"address": 201,
+						"address": 20051,
 						"state": "on"
 					},
 					"action": {
@@ -75,7 +75,7 @@
 				{
 					"name": "EveningLight",
 					"trigger": {
-						"address": 202,
+						"address": 20052,
 						"state": "on"
 					},
 					"action": {
@@ -87,7 +87,7 @@
 				{
 					"name": "NightLight",
 					"trigger": {
-						"address": 203,
+						"address": 20053,
 						"state": "on"
 					},
 					"action": {
@@ -99,7 +99,7 @@
 				{
 					"name": "LightsOff",
 					"trigger": {
-						"address": 204,
+						"address": 20054,
 						"state": "on"
 					},
 					"action": {
@@ -111,7 +111,7 @@
 				{
 					"name": "Sunrise",
 					"trigger": {
-						"address": 205,
+						"address": 20055,
 						"state": "on"
 					},
 					"action": {
@@ -123,7 +123,7 @@
 				{
 					"name": "Sunset",
 					"trigger": {
-						"address": 206,
+						"address": 20056,
 						"state": "on"
 					},
 					"action": {
