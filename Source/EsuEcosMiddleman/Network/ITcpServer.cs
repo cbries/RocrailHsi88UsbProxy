@@ -8,6 +8,7 @@ namespace EsuEcosMiddleman.Network
     public interface ITcpServer
     {
         ILogger Logger { get; set; }
+        bool IsListening { get; }
 
         ConcurrentBag<ITcpClient> ConnectedClients { get; }
 

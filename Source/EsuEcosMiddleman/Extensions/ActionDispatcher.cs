@@ -260,17 +260,19 @@ namespace EsuEcosMiddleman.Extensions
         {
             if (_mqttConfig == null || ! _mqttConfig.Enabled)
             {
-                _logger?.Log?.Warn("MQTT action skipped because MQTT is disabled.");
+                _logger?.Log?.Warn("[MQTT] Action skipped because MQTT is disabled.");
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(_topic))
             {
-                _logger?.Log?.Warn("MQTT action skipped because no MQTT topic is configured.");
+                _logger?.Log?.Warn("[MQTT] Action skipped because no MQTT topic is configured.");
                 return;
             }
 
             var payload = GetPayload(context);
+            _logger?.Log?.Info($"[MQTT] Trigger matched for mapping '{context?.MappingName ?? "<unnamed>"}': address={context?.Trigger?.Address ?? -1}, port={context?.Trigger?.Port ?? -1}, state={context?.Trigger?.State ?? "<none>"}; topic='{_topic}'");
+            _logger?.Log?.Info($"[MQTT] Publishing payload to topic '{_topic}': {JsonConvert.SerializeObject(payload)}");
             await _publisher.PublishAsync(_topic, payload).ConfigureAwait(false);
         }
 
@@ -328,12 +330,13 @@ namespace EsuEcosMiddleman.Extensions
                     .WithRetainFlag(false)
                     .Build();
 
+                _logger?.Log?.Info($"[MQTT] Sending to broker '{_config.Host}:{_config.Port}' on topic '{topic}' payload='{rawPayload}'");
                 await _client.PublishAsync(message, CancellationToken.None).ConfigureAwait(false);
-                _logger?.Log?.Debug($"MQTT publish: {topic}");
+                _logger?.Log?.Info($"[MQTT] Publish succeeded: topic='{topic}', payload='{rawPayload}'");
             }
             catch (Exception ex)
             {
-                _logger?.Log?.Warn($"MQTT publish failed: {topic} ({ex.Message})");
+                _logger?.Log?.Warn($"[MQTT] Publish failed: topic='{topic}' error='{ex.Message}'");
             }
         }
 
@@ -348,17 +351,19 @@ namespace EsuEcosMiddleman.Extensions
                     return;
             }
 
+            _logger?.Log?.Info($"[MQTT] Connecting to broker '{_config.Host}:{_config.Port}' with clientId='{_config.ClientId}'");
+
             var mqttFactory = new MqttFactory();
             _client = mqttFactory.CreateMqttClient();
             _client.ConnectedAsync += async _ =>
             {
-                _logger?.Log?.Info($"MQTT connected: {_config.Host}:{_config.Port}");
+                _logger?.Log?.Info($"[MQTT] Connected to broker '{_config.Host}:{_config.Port}'");
                 await Task.CompletedTask;
             };
             _client.DisconnectedAsync += async _ =>
             {
-                _logger?.Log?.Warn("MQTT connection lost");
-                _logger?.Log?.Info("MQTT reconnecting");
+                _logger?.Log?.Warn("[MQTT] Connection lost to broker");
+                _logger?.Log?.Info("[MQTT] Reconnecting to broker");
                 await Task.CompletedTask;
             };
 
@@ -370,7 +375,15 @@ namespace EsuEcosMiddleman.Extensions
             if (!string.IsNullOrWhiteSpace(_config.Username))
                 options = options.WithCredentials(_config.Username, _config.Password);
 
-            await _client.ConnectAsync(options.Build(), CancellationToken.None).ConfigureAwait(false);
+            try
+            {
+                await _client.ConnectAsync(options.Build(), CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger?.Log?.Warn($"[MQTT] Connection failed to '{_config.Host}:{_config.Port}' error='{ex.Message}'");
+                throw;
+            }
         }
 
         public void Dispose()

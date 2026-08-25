@@ -68,16 +68,8 @@
 					},
 					"action": {
 						"type": "mqtt",
-						"topic": "shellies/shellyrgbw2-ABCDEF/color/0/set",
-						"payload": {
-							"turn": "on",
-							"red": 220,
-							"green": 235,
-							"blue": 255,
-							"white": 255,
-							"gain": 90,
-							"transition": 5000
-						}
+						"topic": "shelly-sky/command/rgbw:0",
+						"payload": "set,true,90,220,235,255,255,5"
 					}
 				},
 				{
@@ -88,16 +80,8 @@
 					},
 					"action": {
 						"type": "mqtt",
-						"topic": "shellies/shellyrgbw2-ABCDEF/color/0/set",
-						"payload": {
-							"turn": "on",
-							"red": 255,
-							"green": 120,
-							"blue": 30,
-							"white": 120,
-							"gain": 65,
-							"transition": 5000
-						}
+						"topic": "shelly-sky/command/rgbw:0",
+						"payload": "set,true,65,255,120,30,120,5"
 					}
 				},
 				{
@@ -108,16 +92,8 @@
 					},
 					"action": {
 						"type": "mqtt",
-						"topic": "shellies/shellyrgbw2-ABCDEF/color/0/set",
-						"payload": {
-							"turn": "on",
-							"red": 10,
-							"green": 20,
-							"blue": 100,
-							"white": 0,
-							"gain": 25,
-							"transition": 5000
-						}
+						"topic": "shelly-sky/command/rgbw:0",
+						"payload": "set,true,25,10,20,100,0,5"
 					}
 				},
 				{
@@ -128,11 +104,8 @@
 					},
 					"action": {
 						"type": "mqtt",
-						"topic": "shellies/shellyrgbw2-ABCDEF/color/0/set",
-						"payload": {
-							"turn": "off",
-							"transition": 5000
-						}
+						"topic": "shelly-sky/command/rgbw:0",
+						"payload": "set,false"
 					}
 				},
 				{
@@ -143,16 +116,8 @@
 					},
 					"action": {
 						"type": "mqtt",
-						"topic": "shellies/shellyrgbw2-ABCDEF/color/0/set",
-						"payload": {
-							"turn": "on",
-							"red": 255,
-							"green": 128,
-							"blue": 64,
-							"white": 160,
-							"gain": 40,
-							"transition": 8000
-						}
+						"topic": "shelly-sky/command/rgbw:0",
+						"payload": "set,true,40,255,128,64,160,8"
 					}
 				},
 				{
@@ -163,16 +128,8 @@
 					},
 					"action": {
 						"type": "mqtt",
-						"topic": "shellies/shellyrgbw2-ABCDEF/color/0/set",
-						"payload": {
-							"turn": "on",
-							"red": 255,
-							"green": 80,
-							"blue": 20,
-							"white": 80,
-							"gain": 70,
-							"transition": 7000
-						}
+						"topic": "shelly-sky/command/rgbw:0",
+						"payload": "set,true,70,255,80,20,80,7"
 					}
 				}
 			]

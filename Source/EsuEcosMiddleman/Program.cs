@@ -57,7 +57,7 @@ namespace EsuEcosMiddleman
             Cfg.Logger = loggerInstance;
 
             var mqttCfg = Cfg?.Extensions?.Actions?.Mqtt;
-            loggerInstance.Log?.Info($"MQTT status: enabled={mqttCfg?.Enabled ?? false}, host={mqttCfg?.Host ?? "<n/a>"}, port={mqttCfg?.Port ?? -1}, clientId={mqttCfg?.ClientId ?? "<n/a>"}");
+            loggerInstance.Log?.Info($"[Startup] MQTT broker configured: enabled={mqttCfg?.Enabled ?? false}, host={mqttCfg?.Host ?? "<n/a>"}, port={mqttCfg?.Port ?? -1}, clientId={mqttCfg?.ClientId ?? "<n/a>"}");
 
             var accessoryIds = (Cfg?.Extensions?.Actions?.Mappings ?? new System.Collections.Generic.List<CfgActionMapping>())
                 .Where(m => m?.Trigger != null && m.Trigger.Address > 0)
@@ -68,25 +68,28 @@ namespace EsuEcosMiddleman
 
             if (accessoryIds.Count > 0)
             {
-                var accessoryViewText = new StringBuilder();
-                accessoryViewText.AppendLine("Configured accessory views:");
-                foreach (var id in accessoryIds)
-                {
-                    accessoryViewText.AppendLine($"  - {id}: objectclass[accessory], view[objectclass,view,listview,control,state], state[0]");
-                }
+                var idsText = string.Join(", ", accessoryIds);
+                loggerInstance.Log?.Info($"[Startup] Accessory triggers registered for lamp control: {idsText}");
 
-                var message = accessoryViewText.ToString().TrimEnd();
-                Console.WriteLine(message);
-                loggerInstance.Log?.Info(message);
+                foreach (var mapping in Cfg?.Extensions?.Actions?.Mappings ?? new System.Collections.Generic.List<CfgActionMapping>())
+                {
+                    if (mapping == null || mapping.Trigger == null) continue;
+                    var topic = mapping.Action?.Topic ?? "<not configured>";
+                    loggerInstance.Log?.Info($"[Startup] Accessory {mapping.Trigger.Address}: name='{mapping.Name}', topic='{topic}', state={mapping.Trigger.State ?? "<any>"}");
+                }
             }
             else
             {
-                Console.WriteLine("Configured accessory views: none");
-                loggerInstance.Log?.Info("Configured accessory views: none");
+                loggerInstance.Log?.Info("[Startup] No accessory triggers registered for lamp control.");
             }
 
             var middleman = Middleman.Instance(Cfg);
-            await middleman.RunAsync();
+            var startupOk = await middleman.RunAsync();
+            if (!startupOk)
+            {
+                loggerInstance.Log?.Warn("Startup terminated because required local ports are unavailable. Check running proxy instances and configured listen port.");
+                return;
+            }
 
             loggerInstance.Log?.Info($"Started {DateTime.Now:F}");
 

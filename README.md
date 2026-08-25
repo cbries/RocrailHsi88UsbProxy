@@ -263,7 +263,7 @@ The extension is enabled from the normal configuration file `EsuEcosMiddleman.js
 
 When `extensions.actions.enabled` is `false`, no action dispatch is performed and the original proxy behavior is unchanged. The MQTT sub-configuration can also be switched off independently if necessary.
 
-## Example: Shelly RGBW2 lighting
+## Example: Shelly Plus RGBW PM lighting (Gen2)
 
 A typical lighting setup uses helper accessory addresses such as `201` through `206`:
 
@@ -285,21 +285,13 @@ A real configuration looks like this:
   },
   "action": {
     "type": "mqtt",
-    "topic": "shellies/shellyrgbw2-ABCDEF/color/0/set",
-    "payload": {
-      "turn": "on",
-      "red": 220,
-      "green": 235,
-      "blue": 255,
-      "white": 255,
-      "gain": 90,
-      "transition": 5000
-    }
+    "topic": "shelly-sky/command/rgbw:0",
+    "payload": "set,true,90,220,235,255,255,5"
   }
 }
 ```
 
-The payload is completely data-driven and can be adjusted to match the actual target device without changing the proxy code itself. A similar mapping can be created for each accessory address or any other trigger pattern supported by the action dispatch.
+For Gen2 devices, the MQTT Control payload format is CSV-based (`set,<on>,<brightness>,<r>,<g>,<b>,<w>,<transition_seconds>`). A similar mapping can be created for each accessory address or any other trigger pattern supported by the action dispatch.
 
 ## Rocrail and ECoS example
 

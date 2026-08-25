@@ -80,9 +80,9 @@ namespace EsuEcosMiddleman
             _tcpWsServerInstance.Start(_cfgRuntime.CfgServer.ListenPort + 1);
         }
 
-        public async Task RunAsync()
+        public async Task<bool> RunAsync()
         {
-            if (_tcpServerInstance != null) return;
+            if (_tcpServerInstance != null) return true;
             if (_cfgRuntime == null)
                 throw new Exception("No runtime configuration set.");
 
@@ -96,6 +96,12 @@ namespace EsuEcosMiddleman
             _tcpServerInstance.ClientFailed += TcpServerInstanceOnClientFailed;
             _tcpServerInstance.Stopped += TcpServerInstanceOnStopped;
             _tcpServerInstance.Listen();
+
+            if (!_tcpServerInstance.IsListening)
+            {
+                _cfgRuntime.Logger?.Log?.Warn($"Startup aborted: local proxy listen port {_cfgRuntime.CfgServer.ListenPort} is not available.");
+                return false;
+            }
 
             InitEcos();
             InitWsServer();
@@ -123,6 +129,7 @@ namespace EsuEcosMiddleman
             _handler = new MiddlemanHandler(_tcpServerInstance, _tcpEcosClient, _tcpWsServerInstance);
             _actionDispatcher = ActionDispatcherFactory.Create(_cfgRuntime, _cfgRuntime.Logger);
             RegisterConfiguredAccessoryViews();
+            return true;
         }
 
         private void RegisterConfiguredAccessoryViews()

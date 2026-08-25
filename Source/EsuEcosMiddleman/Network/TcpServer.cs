@@ -28,6 +28,7 @@ namespace EsuEcosMiddleman.Network
 
         private TcpListener _tcpServer;
         private Thread _serverThread;
+        public bool IsListening { get; private set; }
 
         public ILogger Logger { get; set; }
 
@@ -41,6 +42,7 @@ namespace EsuEcosMiddleman.Network
         public void Listen()
         {
             _stopped = false;
+            IsListening = false;
 
             if (_serverThread != null && _serverThread.IsAlive)
                 return;
@@ -49,7 +51,18 @@ namespace EsuEcosMiddleman.Network
             var port = cfgServer.ListenPort;
 
             _tcpServer = new TcpListener(ip, port);
-            _tcpServer.Start();
+            try
+            {
+                _tcpServer.Start();
+                IsListening = true;
+            }
+            catch (SocketException ex)
+            {
+                Logger?.Log?.Warn($"<TcpServer> Unable to listen on {ip}:{port} ({ex.SocketErrorCode}): {ex.Message}");
+                _stopped = true;
+                IsListening = false;
+                return;
+            }
 
             _serverThread = new Thread(() =>
             {
@@ -77,7 +90,7 @@ namespace EsuEcosMiddleman.Network
             catch (SocketException e)
             {
                 Logger?.Log?.Error($"Listen failed: {e}");
-
+                IsListening = false;
                 _tcpServer.Stop();
             }
         }
@@ -89,6 +102,7 @@ namespace EsuEcosMiddleman.Network
             if (_stopped) return;
 
             _stopped = true;
+            IsListening = false;
 
             foreach (var itClient in ConnectedClients)
             {
