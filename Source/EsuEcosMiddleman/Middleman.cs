@@ -181,11 +181,46 @@ namespace EsuEcosMiddleman
         {
             _tcpEcosClient.Send($"get(1, info){CommandLineTermination}");
             _tcpEcosClient.Send($"get(1, status){CommandLineTermination}");
+            RegisterConfiguredAccessoryViewsAtEcos();
+        }
+
+        private void RegisterConfiguredAccessoryViewsAtEcos()
+        {
+            if (_tcpEcosClient == null)
+                return;
+
+            var ids = (_cfgRuntime?.Extensions?.Actions?.Mappings ?? new List<CfgActionMapping>())
+                .Where(m => m?.Trigger != null && m.Trigger.Address > 0)
+                .Select(m => m.Trigger.Address)
+                .Distinct()
+                .OrderBy(id => id)
+                .ToList();
+
+            if (ids.Count == 0)
+            {
+                _cfgRuntime?.Logger?.Log?.Info("[View] No configured accessory IDs found for startup view registration.");
+                return;
+            }
+
+            _cfgRuntime?.Logger?.Log?.Info($"[View] Register configured accessory views on ECoS startup: {string.Join(", ", ids)}");
+
+            foreach (var id in ids)
+            {
+                var requestView = $"request({id}, view){CommandLineTermination}";
+                var getState = $"get({id}, state){CommandLineTermination}";
+
+                _cfgRuntime?.Logger?.Log?.Info($"[View] Startup -> ECoS: request({id}, view)");
+                _tcpEcosClient.Send(requestView);
+
+                _cfgRuntime?.Logger?.Log?.Info($"[View] Startup -> ECoS: get({id}, state)");
+                _tcpEcosClient.Send(getState);
+            }
         }
 
         private readonly StringBuilder _messageBuffer = new();
         private static readonly Regex EcosEventHeaderRegex = new Regex(@"^<EVENT\s+(\d+)>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex EcosStateLineRegex = new Regex(@"^\s*(\d+)\s+state\[(.*?)\]\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex EcosReplyHeaderRegex = new Regex(@"^<REPLY\s+(request|get)\((\d+).*>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private bool IsEcosConnectionReady()
         {
@@ -211,6 +246,41 @@ namespace EsuEcosMiddleman
             return trimmed;
         }
 
+        private static bool IsViewRelatedCommand(ICommand command)
+        {
+            if (command == null)
+                return false;
+
+            if (command.Type != CommandT.Request && command.Type != CommandT.Get)
+                return false;
+
+            if (command.Arguments == null || command.Arguments.Count == 0)
+                return false;
+
+            return command.Arguments.Any(a =>
+                a != null
+                && !string.IsNullOrWhiteSpace(a.Name)
+                && a.Name.Equals("view", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsViewReplyBlock(string completeMessage)
+        {
+            if (string.IsNullOrWhiteSpace(completeMessage))
+                return false;
+
+            if (!completeMessage.Contains(" view[", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var firstLine = completeMessage
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+                .FirstOrDefault()?.Trim();
+
+            if (string.IsNullOrWhiteSpace(firstLine))
+                return false;
+
+            return EcosReplyHeaderRegex.IsMatch(firstLine);
+        }
+
         private void TcpEcosClientOnMessageReceived(object sender, MessageEventArgs eventargs)
         {
             var line = eventargs.Message?.Trim();
@@ -228,6 +298,13 @@ namespace EsuEcosMiddleman
                 var completeMessage = _messageBuffer.ToString();
                 _messageBuffer.Clear();
                 DispatchAccessoryActionFromEcosEvent(completeMessage);
+                if (IsViewReplyBlock(completeMessage))
+                {
+                    var replyHeader = completeMessage
+                        .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+                        .FirstOrDefault()?.Trim();
+                    _cfgRuntime.Logger?.Log?.Info($"[View] ECoS replied with view data: {replyHeader}");
+                }
                 _cfgRuntime.Logger?.Log?.Debug($"ECoS [in] --> Rocrail [out]: {completeMessage.Trim()}");
                 _handler?.SendToRocrail(completeMessage);
             }
@@ -514,6 +591,11 @@ namespace EsuEcosMiddleman
             if (receivedCmd == null) return;
             var objId = receivedCmd.ObjectId;
 
+            if (IsViewRelatedCommand(receivedCmd))
+            {
+                _cfgRuntime.Logger?.Log?.Info($"[View] Rocrail requested view: {eventargs.Message}");
+            }
+
             //
             // We have to support the ESU ECoSDetector
             // Therefor, relevant commands must be 
@@ -568,6 +650,11 @@ namespace EsuEcosMiddleman
             }
 
             _cfgRuntime.Logger?.Log.Debug($"Ecos [out]: {eventargs.Message}");
+
+            if (IsViewRelatedCommand(receivedCmd))
+            {
+                _cfgRuntime.Logger?.Log?.Info($"[View] Forward view request to ECoS: {eventargs.Message}");
+            }
 
             _handler.SendToEcos(eventargs.Message);
         }
