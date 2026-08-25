@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using EsuEcosMiddleman.ECoS;
 using EsuEcosMiddleman.HSI88USB;
+using System.Globalization;
 using System.Net.NetworkInformation;
 using System.Threading;
 using EsuEcosMiddleman.Extensions;
@@ -186,6 +187,30 @@ namespace EsuEcosMiddleman
         private static readonly Regex EcosEventHeaderRegex = new Regex(@"^<EVENT\s+(\d+)>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static readonly Regex EcosStateLineRegex = new Regex(@"^\s*(\d+)\s+state\[(.*?)\]\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+        private bool IsEcosConnectionReady()
+        {
+            return _tcpEcosClient != null && _tcpEcosClient.IsConnected;
+        }
+
+        private static string NormalizeEventStateForDispatch(string stateRaw)
+        {
+            if (string.IsNullOrWhiteSpace(stateRaw))
+                return stateRaw;
+
+            var trimmed = stateRaw.Trim();
+            if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+            {
+                var hex = trimmed.Substring(2);
+                if (int.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var hexValue))
+                    return hexValue == 0 ? "0" : "1";
+            }
+
+            if (int.TryParse(trimmed, out var numeric))
+                return numeric == 0 ? "0" : "1";
+
+            return trimmed;
+        }
+
         private void TcpEcosClientOnMessageReceived(object sender, MessageEventArgs eventargs)
         {
             var line = eventargs.Message?.Trim();
@@ -254,15 +279,24 @@ namespace EsuEcosMiddleman
             if (string.IsNullOrWhiteSpace(stateRaw))
                 return;
 
-            var syntheticCommand = CommandFactory.Create($"set({objectId}, state[{stateRaw}])");
+            if (!IsEcosConnectionReady())
+            {
+                _cfgRuntime.Logger?.Log?.Info($"[Action] Skip ECoS event dispatch for objectId={objectId}: no active ECoS connection.");
+                return;
+            }
+
+            var normalizedState = NormalizeEventStateForDispatch(stateRaw);
+            _cfgRuntime.Logger?.Log?.Info($"[Action] ECoS accessory event detected: objectId={objectId}, rawState={stateRaw}, normalizedState={normalizedState}");
+
+            var syntheticCommand = CommandFactory.Create($"set({objectId}, state[{normalizedState}])");
             if (syntheticCommand == null)
                 return;
 
-            _cfgRuntime.Logger?.Log?.Info($"[Action] ECoS accessory event detected: objectId={objectId}, state={stateRaw}");
             _ = Task.Run(async () =>
             {
                 try
                 {
+                    _cfgRuntime.Logger?.Log?.Info($"[Action] Dispatch mapped actions from ECoS event: set({objectId}, state[{normalizedState}])");
                     await _actionDispatcher.DispatchAsync(syntheticCommand, completeMessage).ConfigureAwait(false);
                 }
                 catch (Exception ex)
@@ -513,10 +547,17 @@ namespace EsuEcosMiddleman
 
             if (_actionDispatcher != null)
             {
+                if (!IsEcosConnectionReady())
+                {
+                    _cfgRuntime.Logger?.Log?.Info($"[Action] Skip dispatch for command '{eventargs.Message}': no active ECoS connection.");
+                    return;
+                }
+
                 _ = Task.Run(async () =>
                 {
                     try
                     {
+                        _cfgRuntime.Logger?.Log?.Info($"[Action] Dispatch mapped actions from command: {eventargs.Message}");
                         await _actionDispatcher.DispatchAsync(receivedCmd, eventargs.Message).ConfigureAwait(false);
                     }
                     catch (Exception ex)

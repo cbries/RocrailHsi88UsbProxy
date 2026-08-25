@@ -40,6 +40,7 @@ namespace EsuEcosMiddleman.Network
 
         public string IpAddress { get; set; }
         public UInt16 Port { get; set; }
+        public bool IsConnected => _isConnected && _client != null && _client.IsConnected && _run;
 
         #region IConnector
 
@@ -91,6 +92,7 @@ namespace EsuEcosMiddleman.Network
             if (!_run) return true;
 
             _run = false;
+            _isConnected = false;
             
             try
             {
@@ -113,6 +115,7 @@ namespace EsuEcosMiddleman.Network
         #endregion
 
         private bool _run;
+        private bool _isConnected;
         private Thread _thread;
         private TcpClient2 _client;
 
@@ -144,6 +147,7 @@ namespace EsuEcosMiddleman.Network
                 };
 
                 _client.Connect(ipaddr, port);
+                _isConnected = true;
 
                 Logger?.Log?.Info($"<Connector> Connection established to {ipaddr}:{port}");
                 Started?.Invoke(this, null!);
@@ -152,6 +156,7 @@ namespace EsuEcosMiddleman.Network
             }
             catch (Exception ex)
             {
+                _isConnected = false;
                 _invokeStopEvent = false;
                 Logger?.Log?.Error($"<Connector> Connection failed to {ipaddr}:{port} with {ex.Message}");
                 Failed?.Invoke(this, new MessageEventArgs($"Connection failed to {ipaddr}:{port} with {ex.Message}", ex));
@@ -162,6 +167,7 @@ namespace EsuEcosMiddleman.Network
 
         private void ClientOnFailed(object sender, EventArgs e)
         {
+            _isConnected = false;
             Logger?.Log?.Error($"<Connector> Connection closed unexpected!");
             Failed?.Invoke(this, new MessageEventArgs($"Connection closed unexpected"));
         }
