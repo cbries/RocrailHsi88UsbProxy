@@ -20,6 +20,26 @@ namespace EsuEcosMiddleman
 
         public static CfgRuntime Cfg { get; set; }
 
+        private static string ResolveConfigPath()
+        {
+            var candidates = new[]
+            {
+                Path.Combine(AppContext.BaseDirectory, "EsuEcosMiddleman.json"),
+                Path.Combine(Directory.GetCurrentDirectory(), "EsuEcosMiddleman.json"),
+                Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "EsuEcosMiddleman", "EsuEcosMiddleman.json"),
+                Path.Combine(Directory.GetCurrentDirectory(), "EsuEcosMiddleman", "EsuEcosMiddleman.json")
+            };
+
+            foreach (var candidate in candidates)
+            {
+                var full = Path.GetFullPath(candidate);
+                if (File.Exists(full))
+                    return full;
+            }
+
+            throw new FileNotFoundException("EsuEcosMiddleman.json not found in the app directory or project directory.", "EsuEcosMiddleman.json");
+        }
+
         private static async Task Main()
         {
 #if DEBUG
@@ -29,9 +49,15 @@ namespace EsuEcosMiddleman
 
             var loggerInstance = new Logger();
 
-            var cfgCnt = File.ReadAllText("EsuEcosMiddleman.json", Encoding.UTF8);
+            var configPath = ResolveConfigPath();
+            loggerInstance.Log?.Info($"Loading config from: {configPath}");
+
+            var cfgCnt = File.ReadAllText(configPath, Encoding.UTF8);
             Cfg = JsonConvert.DeserializeObject<CfgRuntime>(cfgCnt);
             Cfg.Logger = loggerInstance;
+
+            var mqttCfg = Cfg?.Extensions?.Actions?.Mqtt;
+            loggerInstance.Log?.Info($"MQTT status: enabled={mqttCfg?.Enabled ?? false}, host={mqttCfg?.Host ?? "<n/a>"}, port={mqttCfg?.Port ?? -1}, clientId={mqttCfg?.ClientId ?? "<n/a>"}");
 
             var middleman = Middleman.Instance(Cfg);
             await middleman.RunAsync();
