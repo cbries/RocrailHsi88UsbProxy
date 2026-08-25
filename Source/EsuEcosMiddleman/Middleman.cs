@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using EsuEcosMiddleman.ECoS;
 using EsuEcosMiddleman.HSI88USB;
@@ -128,24 +129,7 @@ namespace EsuEcosMiddleman
 
             _handler = new MiddlemanHandler(_tcpServerInstance, _tcpEcosClient, _tcpWsServerInstance);
             _actionDispatcher = ActionDispatcherFactory.Create(_cfgRuntime, _cfgRuntime.Logger);
-            RegisterConfiguredAccessoryViews();
             return true;
-        }
-
-        private void RegisterConfiguredAccessoryViews()
-        {
-            if (_handler == null || _cfgRuntime?.Extensions?.Actions?.Mappings == null)
-                return;
-
-            foreach (var id in _cfgRuntime.Extensions.Actions.Mappings
-                         .Where(m => m?.Trigger != null && m.Trigger.Address > 0)
-                         .Select(m => m.Trigger.Address)
-                         .Distinct()
-                         .OrderBy(id => id))
-            {
-                _handler.SendToEcos($"request({id}, view){CommandLineTermination}");
-                _handler.SendToRocrail(BuildAccessoryViewReply(id));
-            }
         }
 
         private void TcpEcosClientOnFailed(object sender, MessageEventArgs eventargs)
@@ -199,6 +183,8 @@ namespace EsuEcosMiddleman
         }
 
         private readonly StringBuilder _messageBuffer = new();
+        private static readonly Regex EcosEventHeaderRegex = new Regex(@"^<EVENT\s+(\d+)>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex EcosStateLineRegex = new Regex(@"^\s*(\d+)\s+state\[(.*?)\]\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private void TcpEcosClientOnMessageReceived(object sender, MessageEventArgs eventargs)
         {
@@ -216,6 +202,7 @@ namespace EsuEcosMiddleman
                 // End of a block
                 var completeMessage = _messageBuffer.ToString();
                 _messageBuffer.Clear();
+                DispatchAccessoryActionFromEcosEvent(completeMessage);
                 _cfgRuntime.Logger?.Log?.Debug($"ECoS [in] --> Rocrail [out]: {completeMessage.Trim()}");
                 _handler?.SendToRocrail(completeMessage);
             }
@@ -224,6 +211,65 @@ namespace EsuEcosMiddleman
                 if(line.StartsWith("<", StringComparison.OrdinalIgnoreCase))
                     _cfgRuntime.Logger?.Log?.Debug($"UNKNOWN: {line.Trim()}");
             }
+        }
+
+        private void DispatchAccessoryActionFromEcosEvent(string completeMessage)
+        {
+            if (_actionDispatcher == null || string.IsNullOrWhiteSpace(completeMessage))
+                return;
+
+            var lines = completeMessage
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(l => l.Trim())
+                .Where(l => !string.IsNullOrWhiteSpace(l))
+                .ToList();
+
+            if (lines.Count < 2)
+                return;
+
+            var header = EcosEventHeaderRegex.Match(lines[0]);
+            if (!header.Success)
+                return;
+
+            if (!int.TryParse(header.Groups[1].Value, out var objectId))
+                return;
+
+            if (!IsConfiguredAccessoryAddress(objectId))
+                return;
+
+            string stateRaw = null;
+            foreach (var l in lines)
+            {
+                var stateMatch = EcosStateLineRegex.Match(l);
+                if (!stateMatch.Success)
+                    continue;
+
+                if (!int.TryParse(stateMatch.Groups[1].Value, out var stateObjId) || stateObjId != objectId)
+                    continue;
+
+                stateRaw = stateMatch.Groups[2].Value;
+                break;
+            }
+
+            if (string.IsNullOrWhiteSpace(stateRaw))
+                return;
+
+            var syntheticCommand = CommandFactory.Create($"set({objectId}, state[{stateRaw}])");
+            if (syntheticCommand == null)
+                return;
+
+            _cfgRuntime.Logger?.Log?.Info($"[Action] ECoS accessory event detected: objectId={objectId}, state={stateRaw}");
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _actionDispatcher.DispatchAsync(syntheticCommand, completeMessage).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _cfgRuntime.Logger?.Log?.Warn($"Action dispatcher failed for ECoS event: {ex.Message}");
+                }
+            });
         }
 
         #region HSI-88-USB
@@ -423,40 +469,6 @@ namespace EsuEcosMiddleman
             return false;
         }
 
-        private bool IsAccessoryViewRequest(ICommand command)
-        {
-            if (command == null) return false;
-
-            if (command.Type == CommandT.Request)
-            {
-                if (command.Arguments.Count == 0) return true;
-                return command.Arguments.Any(a => a != null && a.Name != null && a.Name.Equals("view", StringComparison.OrdinalIgnoreCase));
-            }
-
-            if (command.Type == CommandT.Get)
-            {
-                if (command.Arguments.Count == 0) return true;
-                return command.Arguments.Any(a => a != null && a.Name != null && (
-                    a.Name.Equals("view", StringComparison.OrdinalIgnoreCase) ||
-                    a.Name.Equals("state", StringComparison.OrdinalIgnoreCase) ||
-                    a.Name.Equals("control", StringComparison.OrdinalIgnoreCase)));
-            }
-
-            return false;
-        }
-
-        private static string BuildAccessoryViewReply(int objectId)
-        {
-            var sb = new StringBuilder();
-            sb.Append($"<REPLY get({objectId})>{CommandLineTermination}");
-            sb.Append($"  {objectId} objectclass[accessory]{CommandLineTermination}");
-            sb.Append($"  {objectId} view[objectclass,view,listview,control,state]{CommandLineTermination}");
-            sb.Append($"  {objectId} listview[none]{CommandLineTermination}");
-            sb.Append($"  {objectId} control[none]{CommandLineTermination}");
-            sb.Append($"  {objectId} state[0]{CommandLineTermination}");
-            sb.Append($"<END 0 (OK)>{CommandLineTermination}");
-            return sb.ToString();
-        }
 
         #region Server / Rocrail
 
@@ -487,12 +499,6 @@ namespace EsuEcosMiddleman
             if (objId == ObjectIdS88 || objId is >= 100 and <= 131)
             {
                 DoS88Handling(receivedCmd);
-                return;
-            }
-
-            if (IsConfiguredAccessoryAddress(objId) && IsAccessoryViewRequest(receivedCmd))
-            {
-                _handler.SendToRocrail(BuildAccessoryViewReply(objId));
                 return;
             }
 
