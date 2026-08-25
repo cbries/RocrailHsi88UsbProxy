@@ -68,6 +68,23 @@ namespace UnitTestProject1
         }
 
         [TestMethod]
+        public void Middleman_BuildsGenericAccessoryViewReplyForLampAddresses()
+        {
+            var assembly = typeof(CfgDebounce).Assembly;
+            var type = assembly.GetType("EsuEcosMiddleman.Middleman", throwOnError: true);
+            Assert.IsNotNull(type);
+
+            var reply = type.GetMethod("BuildAccessoryViewReply", BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.IsNotNull(reply);
+
+            var result = (string)reply.Invoke(null, new object[] { 201 });
+
+            StringAssert.Contains(result, "objectclass[accessory]");
+            StringAssert.Contains(result, "view[objectclass,view,listview,control,state]");
+            StringAssert.Contains(result, "201 state[0]");
+        }
+
+        [TestMethod]
         public void HsiStateData_TracksStateTransitionsAndBinaryRoundtrip()
         {
             var type = typeof(CfgDebounce).Assembly.GetType("EsuEcosMiddleman.Middleman+HsiStateData", throwOnError: true);

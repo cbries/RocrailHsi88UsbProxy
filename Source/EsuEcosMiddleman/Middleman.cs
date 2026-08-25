@@ -386,6 +386,54 @@ namespace EsuEcosMiddleman
             return m;
         }
 
+        private bool IsConfiguredAccessoryAddress(int objectId)
+        {
+            if (_cfgRuntime?.Extensions?.Actions?.Mappings == null) return false;
+            foreach (var mapping in _cfgRuntime.Extensions.Actions.Mappings)
+            {
+                if (mapping?.Trigger == null) continue;
+                if (mapping.Trigger.Address == objectId)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private bool IsAccessoryViewRequest(ICommand command)
+        {
+            if (command == null) return false;
+
+            if (command.Type == CommandT.Request)
+            {
+                if (command.Arguments.Count == 0) return true;
+                return command.Arguments.Any(a => a != null && a.Name != null && a.Name.Equals("view", StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (command.Type == CommandT.Get)
+            {
+                if (command.Arguments.Count == 0) return true;
+                return command.Arguments.Any(a => a != null && a.Name != null && (
+                    a.Name.Equals("view", StringComparison.OrdinalIgnoreCase) ||
+                    a.Name.Equals("state", StringComparison.OrdinalIgnoreCase) ||
+                    a.Name.Equals("control", StringComparison.OrdinalIgnoreCase)));
+            }
+
+            return false;
+        }
+
+        private static string BuildAccessoryViewReply(int objectId)
+        {
+            var sb = new StringBuilder();
+            sb.Append($"<REPLY get({objectId})>{CommandLineTermination}");
+            sb.Append($"  {objectId} objectclass[accessory]{CommandLineTermination}");
+            sb.Append($"  {objectId} view[objectclass,view,listview,control,state]{CommandLineTermination}");
+            sb.Append($"  {objectId} listview[none]{CommandLineTermination}");
+            sb.Append($"  {objectId} control[none]{CommandLineTermination}");
+            sb.Append($"  {objectId} state[0]{CommandLineTermination}");
+            sb.Append($"<END 0 (OK)>{CommandLineTermination}");
+            return sb.ToString();
+        }
+
         #region Server / Rocrail
 
         private void TcpServerInstanceOnMessageReceived(object sender, MessageEventArgs eventargs)
@@ -415,6 +463,12 @@ namespace EsuEcosMiddleman
             if (objId == ObjectIdS88 || objId is >= 100 and <= 131)
             {
                 DoS88Handling(receivedCmd);
+                return;
+            }
+
+            if (IsConfiguredAccessoryAddress(objId) && IsAccessoryViewRequest(receivedCmd))
+            {
+                _handler.SendToRocrail(BuildAccessoryViewReply(objId));
                 return;
             }
 
