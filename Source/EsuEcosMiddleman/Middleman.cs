@@ -411,6 +411,22 @@ namespace EsuEcosMiddleman
             }
         }
 
+        private void SendCurrentHsi88StatesToClient(ITcpClient client)
+        {
+            if (client == null || !client.IsConnected)
+                return;
+
+            if (_tcpServerInstance == null)
+                return;
+
+            for (var i = 0; i < _cfgRuntime.CfgHsi88.NumberMax; ++i)
+            {
+                var objId = 100 + i;
+                var state = GetStateOfModule(objId);
+                _tcpServerInstance.SendMessageToClient(client, state, false);
+            }
+        }
+
         private readonly ConcurrentDictionary<int, HsiStateData> _hsiStates = new ConcurrentDictionary<int, HsiStateData>();
 
         private bool _versionShown = false;
@@ -691,6 +707,8 @@ namespace EsuEcosMiddleman
         {
             _cfgRuntime.Logger?.Log.Info($"Client connected: {client.Ip}");
 
+            SendCurrentHsi88StatesToClient(client);
+
             StartTaskForS88Updates(client);
         }
 
@@ -702,10 +720,16 @@ namespace EsuEcosMiddleman
         {
             if (client == null) return;
 
+            var intervalMs = _cfgRuntime?.CfgS88Sync?.FullStateBroadcastIntervalMs ?? 2500;
+            if (intervalMs == 0)
+            {
+                _cfgRuntime.Logger?.Log?.Info("S88 periodic full-state broadcast disabled (fullStateBroadcastIntervalMs=0).");
+                return;
+            }
+
             var cts = new CancellationTokenSource();
             _clientTasks[client] = cts;
 
-            var intervalMs = _cfgRuntime?.CfgS88Sync?.FullStateBroadcastIntervalMs ?? 2500;
             if (intervalMs < 100) intervalMs = 2500;
 
             Task.Run(async () =>

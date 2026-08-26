@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Net.Sockets;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using EsuEcosMiddleman.Utilities;
@@ -208,6 +209,11 @@ namespace EsuEcosMiddleman.Network
 
         private readonly ConcurrentQueue<string> _messageQueue = new();
         private readonly SemaphoreSlim _queueLock = new(1, 1);
+        private readonly ConcurrentDictionary<int, string> _latestEventByObjectId = new();
+        private readonly ConcurrentDictionary<int, byte> _pendingEventObjectIds = new();
+        private const string EventTokenPrefix = "__EVENT__:";
+
+        public bool HasConnectedClients => ConnectedClients.Any(c => c != null && c.IsConnected);
 
         /// <summary>
         /// Adds a message to the queue and ensures it gets sent sequentially.
@@ -219,12 +225,37 @@ namespace EsuEcosMiddleman.Network
         {
             if (string.IsNullOrEmpty(msg)) return;
 
+            // Avoid building backlog while no Rocrail client is connected.
+            if (!HasConnectedClients) return;
+
             var encodedMsg = msg;
             if (!encodedMsg.IsBase64String() && forceBase64Encode)
                 encodedMsg = System.Text.Encoding.UTF8.ToBase64(msg);
 
-            _messageQueue.Enqueue(encodedMsg);
+            if (TryGetEventObjectId(msg, out var objectId))
+            {
+                _latestEventByObjectId[objectId] = encodedMsg;
+                if (_pendingEventObjectIds.TryAdd(objectId, 0))
+                    _messageQueue.Enqueue($"{EventTokenPrefix}{objectId}");
+            }
+            else
+            {
+                _messageQueue.Enqueue(encodedMsg);
+            }
+
             _ = ProcessQueueAsync(); // Start processing the queue asynchronously
+        }
+
+        public bool SendMessageToClient(ITcpClient client, string msg, bool forceBase64Encode = true)
+        {
+            if (client == null || !client.IsConnected) return false;
+            if (string.IsNullOrEmpty(msg)) return false;
+
+            var encodedMsg = msg;
+            if (!encodedMsg.IsBase64String() && forceBase64Encode)
+                encodedMsg = System.Text.Encoding.UTF8.ToBase64(msg);
+
+            return client.SendMessage(encodedMsg);
         }
 
         /// <summary>
@@ -237,10 +268,26 @@ namespace EsuEcosMiddleman.Network
             {
                 while (_messageQueue.TryDequeue(out var message))
                 {
+                    if (!HasConnectedClients)
+                        continue;
+
+                    var messageToSend = message;
+
+                    if (messageToSend.StartsWith(EventTokenPrefix, StringComparison.Ordinal))
+                    {
+                        var idPart = messageToSend.Substring(EventTokenPrefix.Length);
+                        if (!int.TryParse(idPart, NumberStyles.Integer, CultureInfo.InvariantCulture, out var eventObjectId))
+                            continue;
+
+                        _pendingEventObjectIds.TryRemove(eventObjectId, out _);
+                        if (!_latestEventByObjectId.TryGetValue(eventObjectId, out messageToSend))
+                            continue;
+                    }
+
                     foreach (var itClient in ConnectedClients)
                     {
                         if (itClient == null || !itClient.IsConnected) continue;
-                        itClient.SendMessage(message);
+                        itClient.SendMessage(messageToSend);
                     }
                 }
             }
@@ -248,6 +295,23 @@ namespace EsuEcosMiddleman.Network
             {
                 _queueLock.Release();
             }
+        }
+
+        private static bool TryGetEventObjectId(string message, out int objectId)
+        {
+            objectId = -1;
+            if (string.IsNullOrWhiteSpace(message)) return false;
+
+            var trimmed = message.TrimStart();
+            if (!trimmed.StartsWith("<EVENT ", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var startIdx = "<EVENT ".Length;
+            var endIdx = trimmed.IndexOf('>', startIdx);
+            if (endIdx <= startIdx) return false;
+
+            var idPart = trimmed.Substring(startIdx, endIdx - startIdx).Trim();
+            return int.TryParse(idPart, NumberStyles.Integer, CultureInfo.InvariantCulture, out objectId);
         }
 
         #region IExchange
