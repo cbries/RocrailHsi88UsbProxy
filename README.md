@@ -209,7 +209,7 @@ The extension is deliberately additive:
 
 - It keeps the normal proxy flow intact.
 - It intercepts already-parsed commands at the central `Middleman` processing point.
-- It normalizes the command into a trigger such as address `201`, port `1`, state `on`.
+- It normalizes the command into a trigger such as ObjectID `201`, port `1`, state `on`.
 - It compares that trigger against configured `mappings`.
 - If a mapping matches, it executes the configured action asynchronously.
 - The proxy continues forwarding the command to the ECoS as usual.
@@ -234,11 +234,13 @@ RocrailHsi88UsbProxy / EsuEcosMiddleman
 
 The dispatcher works with the same command model already used by the proxy. A command like `set(201, state[1])` is normalized to a trigger object with:
 
-- Address: `201`
+- ObjectID: `201`
 - Port: `1`
 - State: `on`
 
 This trigger is then matched against the configured mappings. A matching mapping can publish an MQTT payload to a Shelly or any other MQTT-capable device.
+
+> Note: In JSON mappings the property name is still `trigger.address` for backward compatibility, but the value represents the ECoS ObjectID.
 
 ## Activation in the runtime configuration
 
@@ -265,7 +267,12 @@ When `extensions.actions.enabled` is `false`, no action dispatch is performed an
 
 ## Example: Shelly Plus RGBW PM lighting (Gen2)
 
-A typical lighting setup uses helper accessory addresses such as `201` through `206`:
+The sample setup targets a Shelly Plus RGBW PM (Gen2) using the Shelly MQTT command topic style (`.../command/rgbw:0`) with CSV payload commands.
+
+- Device: `Shelly Plus RGBW PM`
+- API generation/version: `Gen2` command API over MQTT topic `.../command/rgbw:0`
+
+A typical lighting setup uses helper accessory ObjectIDs such as `201` through `206`:
 
 - `201` → Day
 - `202` → Evening
@@ -291,7 +298,7 @@ A real configuration looks like this:
 }
 ```
 
-For Gen2 devices, the MQTT Control payload format is CSV-based (`set,<on>,<brightness>,<r>,<g>,<b>,<w>,<transition_seconds>`). A similar mapping can be created for each accessory address or any other trigger pattern supported by the action dispatch.
+For Gen2 devices in this mode, the MQTT Control payload format is CSV-based (`set,<on>,<brightness>,<r>,<g>,<b>,<w>,<transition_seconds>`). A similar mapping can be created for each ObjectID or any other trigger pattern supported by the action dispatch.
 
 ## Rocrail and ECoS example
 
@@ -315,7 +322,7 @@ is parsed by the existing command factory and normalized before being matched ag
 
 ## Troubleshooting
 
-- If no action fires, verify the trigger address and the command object state in the configuration.
+- If no action fires, verify the trigger ObjectID (`trigger.address` in JSON) and the command object state in the configuration.
 - If MQTT does not publish, validate `extensions.actions.enabled` and `extensions.actions.mqtt.enabled`.
 - If the broker is unreachable, the proxy still continues to function; only the action is skipped.
 - Use the log output to check for success messages such as `Action mapping matched` and `MQTT publish`.
