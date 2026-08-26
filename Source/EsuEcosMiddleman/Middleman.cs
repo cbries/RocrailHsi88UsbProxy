@@ -37,6 +37,7 @@ namespace EsuEcosMiddleman
         private DeviceInterface _hsi88Device;
         private MiddlemanHandler _handler;
         private IActionDispatcher _actionDispatcher;
+        private volatile bool _initialHsiStateBroadcastDone;
 
         private bool IsSimulation => _cfgRuntime.RuntimeConfiguration.IsSimulation;
 
@@ -108,6 +109,9 @@ namespace EsuEcosMiddleman
             InitEcos();
             InitWsServer();
 
+            _handler = new MiddlemanHandler(_tcpServerInstance, _tcpEcosClient, _tcpWsServerInstance);
+            _actionDispatcher = ActionDispatcherFactory.Create(_cfgRuntime, _cfgRuntime.Logger);
+
             // init hsi state cache
             // offset of "100" because ecos starts the object id with 100 for s88 modules
             for (var idx = 0; idx < 32; ++idx)
@@ -127,9 +131,6 @@ namespace EsuEcosMiddleman
                 await _hsi88Device.RunSimulationAsync();
             else
                 await _hsi88Device.RunAsync();
-
-            _handler = new MiddlemanHandler(_tcpServerInstance, _tcpEcosClient, _tcpWsServerInstance);
-            _actionDispatcher = ActionDispatcherFactory.Create(_cfgRuntime, _cfgRuntime.Logger);
             return true;
         }
 
@@ -398,6 +399,9 @@ namespace EsuEcosMiddleman
 
         private void SendCurrentHsi88States()
         {
+            if (_handler == null)
+                return;
+
             for (var i = 0; i < _cfgRuntime.CfgHsi88.NumberMax; ++i)
             {
                 var objId = 100 + i;
@@ -446,6 +450,13 @@ namespace EsuEcosMiddleman
                     var stateJsonToSend = GetStateOfModule(objId, true);
                     _handler.SendToWs(stateJsonToSend);
                 }
+            }
+
+            if (!_initialHsiStateBroadcastDone && data.States.Count > 0)
+            {
+                _initialHsiStateBroadcastDone = true;
+                _cfgRuntime.Logger?.Log.Info("HSI-88 initial snapshot received; broadcasting full S88 state cache to connected clients.");
+                SendCurrentHsi88States();
             }
         }
 
@@ -694,12 +705,15 @@ namespace EsuEcosMiddleman
             var cts = new CancellationTokenSource();
             _clientTasks[client] = cts;
 
+            var intervalMs = _cfgRuntime?.CfgS88Sync?.FullStateBroadcastIntervalMs ?? 2500;
+            if (intervalMs < 100) intervalMs = 2500;
+
             Task.Run(async () =>
             {
                 while (!cts.Token.IsCancellationRequested && client.IsConnected)
                 {
                     SendCurrentHsi88States();
-                    await Task.Delay(2500, cts.Token);
+                    await Task.Delay((int)intervalMs, cts.Token);
                 }
             }, cts.Token);
         }

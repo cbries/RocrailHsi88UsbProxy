@@ -16,6 +16,9 @@
 		"right": 0,
 		"devicePath": "\\\\.\\HsiUsb1"
 	},
+	"s88Sync": {
+		"fullStateBroadcastIntervalMs": 2500
+	},
 	"debounce": {
 		"checkIntervalMs": 25,
 		"onMs": 25,

@@ -44,6 +44,17 @@ namespace EsuEcosMiddleman
         [JsonProperty("offMs")] public uint Off { get; set; }
     }
 
+    internal interface ICfgS88Sync
+    {
+        uint FullStateBroadcastIntervalMs { get; set; }
+    }
+
+    public class CfgS88Sync : ICfgS88Sync
+    {
+        [JsonProperty("fullStateBroadcastIntervalMs")]
+        public uint FullStateBroadcastIntervalMs { get; set; } = 2500;
+    }
+
     internal interface ICfgDebug
     {
         bool Enabled { get; set; }
@@ -134,6 +145,7 @@ namespace EsuEcosMiddleman
         CfgServer CfgServer { get; set; }
         CfgTargetEcos CfgTargetEcos { get; set; }
         ICfgHsi88 CfgHsi88 { get; set; }
+        ICfgS88Sync CfgS88Sync { get; set; }
         ICfgDebounce CfgDebounce { get; set; }
         IRuntimeConfiguration RuntimeConfiguration { get; set; }
         ICfgDebug DebugConfiguration { get; set; }
@@ -149,6 +161,7 @@ namespace EsuEcosMiddleman
         [JsonProperty("server")] public CfgServer CfgServer { get; set; } = new();
         [JsonProperty("ecos")] public CfgTargetEcos CfgTargetEcos { get; set; } = new();
         [JsonProperty("hsi")] public ICfgHsi88 CfgHsi88 { get; set; } = new CfgHsi88();
+        [JsonProperty("s88Sync")] public ICfgS88Sync CfgS88Sync { get; set; } = new CfgS88Sync();
         [JsonProperty("debounce")] public ICfgDebounce CfgDebounce { get; set; } = new CfgDebounce();
         [JsonProperty("runtime")] public IRuntimeConfiguration RuntimeConfiguration { get; set; } = new RuntimeConfiguration();
         [JsonProperty("debug")] public ICfgDebug DebugConfiguration { get; set; } = new CfgDebug();
