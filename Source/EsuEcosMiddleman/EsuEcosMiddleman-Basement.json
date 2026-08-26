@@ -60,16 +60,16 @@
 			},
 			"lightAutomation": {
 				"enabled": true,
-				"switchAddress": 20057,
+				"switchAddress": 20063,
 				"dayDurationMinutes": 15,
 				"cyclePauseSeconds": 30,
 				"manualOverrideAddresses": [
-					20051,
-					20052,
-					20053,
-					20054,
-					20055,
-					20056
+					20057,
+					20058,
+					20059,
+					20060,
+					20061,
+					20062
 				],
 				"stopAction": {
 					"type": "mqtt",
@@ -128,7 +128,7 @@
 				{
 					"name": "DayLight",
 					"trigger": {
-						"address": 20051,
+						"address": 20057,
 						"state": "on"
 					},
 					"action": {
@@ -140,7 +140,7 @@
 				{
 					"name": "EveningLight",
 					"trigger": {
-						"address": 20052,
+						"address": 20058,
 						"state": "on"
 					},
 					"action": {
@@ -152,7 +152,7 @@
 				{
 					"name": "NightLight",
 					"trigger": {
-						"address": 20053,
+						"address": 20059,
 						"state": "on"
 					},
 					"action": {
@@ -164,7 +164,7 @@
 				{
 					"name": "LightsOff",
 					"trigger": {
-						"address": 20054,
+						"address": 20060,
 						"state": "on"
 					},
 					"action": {
@@ -176,7 +176,7 @@
 				{
 					"name": "Sunrise",
 					"trigger": {
-						"address": 20055,
+						"address": 20061,
 						"state": "on"
 					},
 					"action": {
@@ -188,7 +188,7 @@
 				{
 					"name": "Sunset",
 					"trigger": {
-						"address": 20056,
+						"address": 20062,
 						"state": "on"
 					},
 					"action": {
@@ -200,7 +200,7 @@
 				{
 					"name": "LightAutomationOn",
 					"trigger": {
-						"address": 20057,
+						"address": 20063,
 						"state": "on"
 					},
 					"action": {
@@ -213,7 +213,7 @@
 				{
 					"name": "LightAutomationOff",
 					"trigger": {
-						"address": 20057,
+						"address": 20063,
 						"state": "off"
 					},
 					"action": {
