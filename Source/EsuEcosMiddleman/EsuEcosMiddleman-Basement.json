@@ -58,6 +58,72 @@
 				"username": "",
 				"password": ""
 			},
+			"lightAutomation": {
+				"enabled": true,
+				"switchAddress": 20057,
+				"dayDurationMinutes": 15,
+				"cyclePauseSeconds": 30,
+				"manualOverrideAddresses": [
+					20051,
+					20052,
+					20053,
+					20054,
+					20055,
+					20056
+				],
+				"stopAction": {
+					"type": "mqtt",
+					"topic": "shelly-sky/command/rgbw:0",
+					"payload": "set,false"
+				},
+				"phases": [
+					{
+						"name": "Sunrise",
+						"atPercent": 0,
+						"action": {
+							"type": "mqtt",
+							"topic": "shelly-sky/command/rgbw:0",
+							"payload": "set,true,40,255,128,64,160,8"
+						}
+					},
+					{
+						"name": "DayLight",
+						"atPercent": 8,
+						"action": {
+							"type": "mqtt",
+							"topic": "shelly-sky/command/rgbw:0",
+							"payload": "set,true,90,220,235,255,255,5"
+						}
+					},
+					{
+						"name": "EveningLight",
+						"atPercent": 60,
+						"action": {
+							"type": "mqtt",
+							"topic": "shelly-sky/command/rgbw:0",
+							"payload": "set,true,65,255,120,30,120,5"
+						}
+					},
+					{
+						"name": "Sunset",
+						"atPercent": 72,
+						"action": {
+							"type": "mqtt",
+							"topic": "shelly-sky/command/rgbw:0",
+							"payload": "set,true,70,255,80,20,80,7"
+						}
+					},
+					{
+						"name": "NightLight",
+						"atPercent": 76,
+						"action": {
+							"type": "mqtt",
+							"topic": "shelly-sky/command/rgbw:0",
+							"payload": "set,true,25,10,20,100,0,5"
+						}
+					}
+				]
+			},
 			"mappings": [
 				{
 					"name": "DayLight",
@@ -129,6 +195,32 @@
 						"type": "mqtt",
 						"topic": "shelly-sky/command/rgbw:0",
 						"payload": "set,true,70,255,80,20,80,7"
+					}
+				},
+				{
+					"name": "LightAutomationOn",
+					"trigger": {
+						"address": 20057,
+						"state": "on"
+					},
+					"action": {
+						"type": "light-automation",
+						"payload": {
+							"mode": "start"
+						}
+					}
+				},
+				{
+					"name": "LightAutomationOff",
+					"trigger": {
+						"address": 20057,
+						"state": "off"
+					},
+					"action": {
+						"type": "light-automation",
+						"payload": {
+							"mode": "stop"
+						}
 					}
 				}
 			]

@@ -120,6 +120,24 @@ namespace EsuEcosMiddleman
         [JsonProperty("payload")] public object Payload { get; set; }
     }
 
+    public class CfgLightAutomationPhase
+    {
+        [JsonProperty("name")] public string Name { get; set; }
+        [JsonProperty("atPercent")] public uint AtPercent { get; set; }
+        [JsonProperty("action")] public CfgActionDefinition Action { get; set; } = new CfgActionDefinition();
+    }
+
+    public class CfgLightAutomation
+    {
+        [JsonProperty("enabled")] public bool Enabled { get; set; } = false;
+        [JsonProperty("switchAddress")] public int SwitchAddress { get; set; } = -1;
+        [JsonProperty("dayDurationMinutes")] public uint DayDurationMinutes { get; set; } = 15;
+        [JsonProperty("cyclePauseSeconds")] public uint CyclePauseSeconds { get; set; } = 30;
+        [JsonProperty("manualOverrideAddresses")] public List<int> ManualOverrideAddresses { get; set; } = new List<int>();
+        [JsonProperty("stopAction")] public CfgActionDefinition StopAction { get; set; } = new CfgActionDefinition();
+        [JsonProperty("phases")] public List<CfgLightAutomationPhase> Phases { get; set; } = new List<CfgLightAutomationPhase>();
+    }
+
     public class CfgActionMapping
     {
         [JsonProperty("name")] public string Name { get; set; }
@@ -131,6 +149,7 @@ namespace EsuEcosMiddleman
     {
         [JsonProperty("enabled")] public bool Enabled { get; set; } = true;
         [JsonProperty("mqtt")] public CfgMqtt Mqtt { get; set; } = new CfgMqtt();
+        [JsonProperty("lightAutomation")] public CfgLightAutomation LightAutomation { get; set; } = new CfgLightAutomation();
         [JsonProperty("mappings")] public List<CfgActionMapping> Mappings { get; set; } = new List<CfgActionMapping>();
     }
 
